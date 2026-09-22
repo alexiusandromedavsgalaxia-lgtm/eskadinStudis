@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="description" content="Eskådin Stüdis® — crea, publica y juega.">
+  <title>Eskådin Stüdis®</title>
+  <style>
+    :root{--bg:#090b10;--panel:#11141c;--panel2:#171b25;--text:#f4f5f7;--muted:#9ca3af;--accent:#b8ff5a;--accent2:#7c5cff;--line:rgba(255,255,255,.09)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0%,rgba(124,92,255,.18),transparent 32rem),radial-gradient(circle at 15% 20%,rgba(184,255,90,.08),transparent 28rem),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    a{color:inherit;text-decoration:none}.wrap{width:min(1120px,calc(100% - 36px));margin:auto}
+    nav{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+    .brand{font-weight:800;letter-spacing:-.04em;font-size:21px}.brand span{color:var(--accent)}
+    .links{display:flex;gap:22px;color:var(--muted);font-size:14px}.links a:hover{color:var(--text)}
+    .hero{min-height:650px;display:grid;place-items:center;padding:80px 0 100px}.hero-inner{text-align:center;max-width:850px}
+    .pill{display:inline-flex;padding:7px 11px;border:1px solid rgba(184,255,90,.22);background:rgba(184,255,90,.06);color:var(--accent);border-radius:999px;font-size:12px;font-weight:700;margin-bottom:22px}
+    h1{font-size:clamp(56px,10vw,112px);line-height:.86;letter-spacing:-.075em;margin:0 0 28px}
+    h1 .soft{color:#fff}.gradient{background:linear-gradient(100deg,var(--accent),#d8ff9c 42%,#a992ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{font-size:clamp(18px,2.4vw,24px);line-height:1.45;color:#c8ccd5;margin:0 auto 34px;max-width:700px}
+    .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.btn{border:1px solid var(--line);padding:13px 18px;border-radius:13px;font-weight:750;font-size:14px;transition:.2s}.btn.primary{background:var(--accent);color:#10130b;border-color:var(--accent)}.btn:hover{transform:translateY(-2px)}
+    section{padding:90px 0}.section-head{max-width:650px;margin-bottom:30px}.eyebrow{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.14em;font-weight:800}.section-head h2{font-size:42px;letter-spacing:-.05em;margin:10px 0}.section-head p{color:var(--muted);line-height:1.6}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));border:1px solid var(--line);border-radius:20px;padding:25px;min-height:190px}.icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--panel2);color:var(--accent);font-weight:900;margin-bottom:22px}.card h3{margin:0 0 8px;font-size:19px}.card p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}
+    .showcase{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.feature{min-height:390px;border-radius:24px;border:1px solid var(--line);padding:30px;background:linear-gradient(145deg,#1b202b,#0e1016)}.feature h3{font-size:36px;letter-spacing:-.04em;margin:12px 0}.feature p{color:var(--muted);line-height:1.6;max-width:540px}.mock{margin-top:34px;border:1px solid var(--line);border-radius:18px;background:#0a0c11;padding:18px;display:grid;grid-template-columns:80px 1fr;gap:12px}.mock-side{display:grid;gap:8px}.mock-side i,.mock-main i{display:block;height:9px;background:#242936;border-radius:5px}.mock-main{display:grid;gap:12px}.mock-main i:nth-child(1){width:75%;height:16px;background:#343b49}.mock-main i:nth-child(2){width:90%}.mock-main i:nth-child(3){width:55%}.side-stack{display:grid;gap:14px}.mini{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:25px}.mini strong{font-size:30px;display:block;margin-bottom:7px}.mini span{color:var(--muted);font-size:13px}
+    .cta{border:1px solid rgba(184,255,90,.22);background:linear-gradient(135deg,rgba(184,255,90,.09),rgba(124,92,255,.09));border-radius:28px;padding:52px;text-align:center}.cta h2{font-size:46px;letter-spacing:-.05em;margin:0 0 14px}.cta p{color:var(--muted);margin:0 auto 25px;max-width:620px;line-height:1.6}
+    footer{border-top:1px solid var(--line);padding:28px 0;color:#737986;font-size:12px;display:flex;justify-content:space-between;gap:20px}
+    @media(max-width:800px){.links{display:none}.grid,.showcase{grid-template-columns:1fr}.hero{min-height:590px;padding-top:55px}.cta{padding:34px 22px}.cta h2{font-size:36px}section{padding:65px 0}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#">Esk<span>å</span>din St<span>ü</span>dis®</a>
+      <div class="links"><a href="#explore">Explorar</a><a href="#create">Crear</a><a href="#about">Sobre la plataforma</a></div>
+      <a class="btn" href="#create">Empezar</a>
+    </nav>
+
+    <main>
+      <section class="hero" id="about">
+        <div class="hero-inner">
+          <div class="pill">UNA NUEVA FORMA DE CREAR JUEGOS</div>
+          <h1><span class="soft">Crea.</span><br><span class="gradient">Publica.</span><br><span class="soft">Juega.</span></h1>
+          <p class="lead">Eskådin Stüdis® es un espacio para convertir ideas en juegos 3D, compartirlos y jugar sin anuncios ni tiendas dentro de los juegos.</p>
+          <div class="actions"><a class="btn primary" href="#create">Crear un juego</a><a class="btn" href="#explore">Explorar juegos</a></div>
+        </div>
+      </section>
+
+      <section id="create">
+        <div class="section-head"><div class="eyebrow">Crear sin pelearte con el editor</div><h2>Tu idea primero. El código, después.</h2><p>Construye escenas, coloca objetos y prepara tu juego desde una interfaz pensada para que crear sea directo.</p></div>
+        <div class="grid">
+          <article class="card"><div class="icon">01</div><h3>Editor visual</h3><p>Coloca paredes, objetos, luces y sonidos sin convertir cada acción sencilla en una clase de programación.</p></article>
+          <article class="card"><div class="icon">02</div><h3>Publicación abierta</h3><p>Prepara tu juego y publícalo para que otras personas puedan descubrirlo y jugarlo desde la plataforma.</p></article>
+          <article class="card"><div class="icon">03</div><h3>Tu juego, tus reglas</h3><p>Las experiencias pueden tener sistemas propios y monedas internas, pero la plataforma no vende dinero real dentro de ellas.</p></article>
+        </div>
+      </section>
+
+      <section id="explore">
+        <div class="section-head"><div class="eyebrow">Descubre</div><h2>Un catálogo hecho por gente que crea.</h2><p>Busca experiencias, entra, juega y encuentra algo nuevo sin anuncios interrumpiendo la partida.</p></div>
+        <div class="showcase">
+          <div class="feature"><div class="eyebrow">ESCAPARATE</div><h3>Todo empieza con una idea.</h3><p>Desde pequeños proyectos hasta mundos 3D completos. La plataforma está pensada para que crear y jugar formen parte del mismo sitio.</p>
+            <div class="mock"><div class="mock-side"><i></i><i></i><i></i><i></i></div><div class="mock-main"><i></i><i></i><i></i><i></i></div></div>
+          </div>
+          <div class="side-stack">
+            <div class="mini"><strong>F¢</strong><span>Una moneda de plataforma que se consigue jugando, no comprándola.</span></div>
+            <div class="mini"><strong>0 €</strong><span>Sin anuncios. Sin compras dentro de los juegos. Sin pagar por publicar.</span></div>
+            <div class="mini"><strong>∞</strong><span>Espacio para crear, probar y compartir nuevas experiencias.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="cta"><div class="eyebrow">ESKÅDIN STÜDIS®</div><h2>Haz que exista.</h2><p>La próxima experiencia puede empezar con una pared, una idea absurda o un mundo entero. Tú decides.</p><div class="actions"><a class="btn primary" href="#create">Entrar al editor</a><a class="btn" href="#explore">Ver juegos</a></div></div>
+      </section>
+    </main>
+
+    <footer><span>© 2026 Eskådin Stüdis®</span><span>Creado para crear. Diseñado para jugar.</span></footer>
+  </div>
+</body>
+</html>
