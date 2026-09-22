@@ -88,14 +88,47 @@ function GameRuntime({game,onExit}){
     box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box);
    }
   }
-  const floorY=source.length?Math.max(0,...source.filter(o=>["floor","plane","wall"].includes(o.type)).map(o=>Number(o.y)||0)):0;
+  const playerRadius=.35;
+  const playerHeight=1.6;
+  const colliders=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
+  const colliderBoxes=colliders.map(m=>{const box=new THREE.Box3().setFromObject(m);return {mesh:m,box}});
+  let floorY=0;
+  for(const c of colliderBoxes){
+   const type=c.mesh.userData.runtimeType;
+   if(type==="floor"||type==="plane"){
+    floorY=Math.max(floorY,c.box.max.y);
+   }
+  }
+  const fallbackFloor=source.length?0:0;
 
   const player=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.35,.9,8,16),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
-  body.position.y=.8;body.castShadow=true;player.add(body);
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(playerRadius,playerHeight-2*playerRadius,8,16),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
+  body.position.y=playerHeight*.5;body.castShadow=true;player.add(body);
   player.position.set(0,floorY,4);scene3.add(player);
 
   const velocity=new THREE.Vector3();
+  const playerBox=new THREE.Box3();
+  const testBox=new THREE.Box3();
+  const horizontalCollides=(x,z,y)=>{
+   const halfHeight=playerHeight*.5;
+   testBox.min.set(x-playerRadius,y,testBox.min.z);
+   testBox.max.set(x+playerRadius,y+playerHeight,testBox.max.z);
+   for(const c of colliderBoxes){
+    const b=c.box;
+    if(b.max.y<=y+.02||b.min.y>=y+playerHeight-.02)continue;
+    const closestX=Math.max(b.min.x,Math.min(x,b.max.x));
+    const closestZ=Math.max(b.min.z,Math.min(z,b.max.z));
+    const dx=x-closestX,dz=z-closestZ;
+    if(dx*dx+dz*dz<playerRadius*playerRadius)return true;
+   }
+   return false;
+  };
+  const resolveHorizontal=(nextX,nextZ)=>{
+   let x=player.position.x,z=player.position.z;
+   if(!horizontalCollides(nextX,z,player.position.y))x=nextX;
+   if(!horizontalCollides(x,nextZ,player.position.y))z=nextZ;
+   return {x,z};
+  };
   const forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
   let yaw=0,pitch=-.18,last=performance.now(),raf=0;
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
@@ -179,11 +212,30 @@ function GameRuntime({game,onExit}){
    forward.set(Math.sin(yaw),0,Math.cos(yaw));right.set(Math.cos(yaw),0,-Math.sin(yaw));
    const dir=new THREE.Vector3().addScaledVector(right,move.x).addScaledVector(forward,move.z);
    const speed=k.ShiftLeft||k.ShiftRight?6.5:4.2;
-   player.position.addScaledVector(dir,speed*dt);
-   velocity.y-=18*dt;player.position.y+=velocity.y*dt;
-   const grounded=player.position.y<=floorY+.02;
-   if(grounded){player.position.y=floorY+.02;velocity.y=0}
-   if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7;jumpRef.current=false}
+   const nextX=player.position.x+dir.x*speed*dt;
+   const nextZ=player.position.z+dir.z*speed*dt;
+   const resolved=resolveHorizontal(nextX,nextZ);
+   player.position.x=resolved.x;player.position.z=resolved.z;
+
+   velocity.y-=22*dt;
+   const previousY=player.position.y;
+   player.position.y+=velocity.y*dt;
+
+   let supportY=floorY;
+   const feet=player.position.y;
+   for(const c of colliderBoxes){
+    const b=c.box;
+    const type=c.mesh.userData.runtimeType;
+    if(type==="light"||type==="camera"||type==="spawn"||type==="sound"||type==="text")continue;
+    const insideX=player.position.x>=b.min.x-playerRadius&&player.position.x<=b.max.x+playerRadius;
+    const insideZ=player.position.z>=b.min.z-playerRadius&&player.position.z<=b.max.z+playerRadius;
+    if(insideX&&insideZ&&previousY>=b.max.y-playerHeight-.08&&feet<=b.max.y+.15){
+     supportY=Math.max(supportY,b.max.y);
+    }
+   }
+   const grounded=player.position.y<=supportY+.015&&velocity.y<=0;
+   if(grounded){player.position.y=supportY;velocity.y=0}
+   if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7.2;jumpRef.current=false}
    player.rotation.y=yaw;
    camera.position.set(player.position.x,player.position.y+1.25,player.position.z);
    camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
