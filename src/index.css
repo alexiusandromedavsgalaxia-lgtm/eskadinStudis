@@ -729,3 +729,57 @@ body:has(.editor-page) .nav{padding:0 24px}
 @media(max-width:620px){
   .studio-sidebar{width:min(310px,88vw)!important;padding:16px 12px 12px!important}
 }
+
+
+/* Studio utility panels */
+.studio-panel-preview{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+.studio-panel-preview>strong{
+  font:900 9px ui-monospace,monospace;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#8d98a9;
+}
+.studio-object-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  max-height:190px;
+  overflow:auto;
+}
+.studio-object-grid button,
+.studio-scene-list button{
+  min-width:0;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:7px;
+  padding:7px 8px;
+  background:rgba(255,255,255,.035);
+  color:#aeb8c7;
+  text-align:left;
+  font:700 9px ui-monospace,monospace;
+  cursor:pointer;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.studio-object-grid button:hover,
+.studio-scene-list button:hover,
+.studio-scene-list button.active{
+  color:var(--accent);
+  border-color:rgba(184,255,90,.3);
+  background:rgba(184,255,90,.07);
+}
+.studio-scene-list{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-height:190px;
+  overflow:auto;
+}
