@@ -55,7 +55,7 @@ const sceneSeed=[{id:1,type:"wall",name:"Wall 01",x:0,y:0,z:0,rx:0,ry:0,rz:0,s:1
 
 function meshFor(o){
  const colors={light:0xffd54a,spawn:0x6aa7ff,camera:0xa78bfa,sound:0xff62b5,text:0xf2f4f8,wall:0x71809a,sphere:0x6fd3ff,cylinder:0x8de08b,cone:0xff9f68,torus:0xd99cff,plane:0x8f9aaa,capsule:0xff7eb6};
- const material=new THREE.MeshStandardMaterial({color:colors[o.type]||0x71809a,roughness:.55,metalness:.2});
+ const material=new THREE.MeshStandardMaterial({color:o.color||colors[o.type]||0x71809a,roughness:o.roughness??.55,metalness:o.metalness??.2});
  let geometry;
  if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
  else if(o.type==="light") geometry=new THREE.SphereGeometry(.42,24,16);
@@ -72,7 +72,7 @@ function meshFor(o){
  else geometry=new THREE.BoxGeometry(1,1,1);
  const mesh=new THREE.Mesh(geometry,material);
  mesh.position.set(o.x,o.y,o.z);
- mesh.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));
+ mesh.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));\n if(o.type==="floor")mesh.rotation.x=-Math.PI/2;
  mesh.scale.setScalar(o.s);
  mesh.userData.objectId=o.id;
  mesh.castShadow=true;
@@ -183,7 +183,7 @@ function Editor(){
  useEffect(()=>setObj(scene.find(o=>o.id===selected)||null),[scene,selected]);
 
  const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
- const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0],floor:[0,0,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1};setScene(s=>[...s,item]);setSelected(id)};
+ const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0],floor:[0,0,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};setScene(s=>[...s,item]);setSelected(id)};
  const saveScene=()=>{save("eskadin-scene",scene);save("eskadin-project",{name:"Untitled project",scene,updatedAt:new Date().toISOString()});setSaved(true);setTimeout(()=>setSaved(false),1000)};
  const del=()=>{if(selected==null)return;setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
  const dup=()=>{const o=scene.find(x=>x.id===selected);if(o){const id=Date.now();setScene(s=>[...s,{...o,id,name:o.name+" copy",x:o.x+.6,z:o.z+.6}]);setSelected(id)}};
@@ -207,7 +207,7 @@ function Editor(){
    </section>
    <aside className="editor-dock right-dock">
     <div className="dock-heading"><span>INSPECTOR</span><span>{obj?.type||"—"}</span></div>
-    {obj?<><label>Name<input value={obj.name} onChange={e=>upd(obj.id,{name:e.target.value})}/></label><div className="inspector-group"><b>TRANSFORM</b><div className="xyz"><label>X<input type="number" step=".1" value={obj.x} onChange={e=>upd(obj.id,{x:Number(e.target.value)})}/></label><label>Y<input type="number" step=".1" value={obj.y} onChange={e=>upd(obj.id,{y:Number(e.target.value)})}/></label><label>Z<input type="number" step=".1" value={obj.z} onChange={e=>upd(obj.id,{z:Number(e.target.value)})}/></label></div><div className="xyz"><label>RX<input type="number" step="1" value={obj.rx} onChange={e=>upd(obj.id,{rx:Number(e.target.value)})}/></label><label>RY<input type="number" step="1" value={obj.ry} onChange={e=>upd(obj.id,{ry:Number(e.target.value)})}/></label><label>RZ<input type="number" step="1" value={obj.rz} onChange={e=>upd(obj.id,{rz:Number(e.target.value)})}/></label></div><label>Scale<input type="number" step=".1" min=".1" value={obj.s} onChange={e=>upd(obj.id,{s:Number(e.target.value)})}/></label></div><div className="inspector-group"><b>QUICK ACTIONS</b><div className="inspector-actions"><button onClick={dup}>Duplicate</button><button onClick={()=>upd(obj.id,{x:0,y:.5,z:0,rx:0,ry:0,rz:0,s:1})}>Reset transform</button><button className="danger-mini" onClick={del}>Delete object</button></div></div></>:<div className="empty-inspector">Select an object in the viewport or Scene panel.</div>}
+    {obj?<><label>Name<input value={obj.name} onChange={e=>upd(obj.id,{name:e.target.value})}/></label><div className="inspector-group"><b>TRANSFORM</b><div className="xyz"><label>X<input type="number" step=".1" value={obj.x} onChange={e=>upd(obj.id,{x:Number(e.target.value)})}/></label><label>Y<input type="number" step=".1" value={obj.y} onChange={e=>upd(obj.id,{y:Number(e.target.value)})}/></label><label>Z<input type="number" step=".1" value={obj.z} onChange={e=>upd(obj.id,{z:Number(e.target.value)})}/></label></div><div className="xyz"><label>RX<input type="number" step="1" value={obj.rx} onChange={e=>upd(obj.id,{rx:Number(e.target.value)})}/></label><label>RY<input type="number" step="1" value={obj.ry} onChange={e=>upd(obj.id,{ry:Number(e.target.value)})}/></label><label>RZ<input type="number" step="1" value={obj.rz} onChange={e=>upd(obj.id,{rz:Number(e.target.value)})}/></label></div><label>Scale<input type="number" step=".1" min=".1" value={obj.s} onChange={e=>upd(obj.id,{s:Number(e.target.value)})}/></label></div><div className="inspector-group"><b>MATERIAL</b><label>Color<input type="color" value={obj.color||"#71809a"} onChange={e=>upd(obj.id,{color:e.target.value})}/></label><label>Roughness<input type="range" min="0" max="1" step=".01" value={obj.roughness??.55} onChange={e=>upd(obj.id,{roughness:Number(e.target.value)})}/></label><label>Metalness<input type="range" min="0" max="1" step=".01" value={obj.metalness??.2} onChange={e=>upd(obj.id,{metalness:Number(e.target.value)})}/></label></div><div className="inspector-group"><b>QUICK ACTIONS</b><div className="inspector-actions"><button onClick={dup}>Duplicate</button><button onClick={()=>upd(obj.id,{x:0,y:.5,z:0,rx:0,ry:0,rz:0,s:1})}>Reset transform</button><button className="danger-mini" onClick={del}>Delete object</button></div></div></>:<div className="empty-inspector">Select an object in the viewport or Scene panel.</div>}
     <div className="inspector-group editor-stats"><b>SCENE</b><span>{scene.length} objects</span><span>Grid {grid?"ON":"OFF"}</span><span>Snap {snap?"ON":"OFF"}</span><span>WebGL realtime preview</span></div>
    </aside>
   </div>
