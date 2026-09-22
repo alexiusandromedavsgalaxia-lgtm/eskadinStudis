@@ -171,7 +171,21 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
  return <div ref={hostRef} className="three-editor-viewport"/>;
 }
 
-function Editor(){
+function useStudioFullscreenLock(){
+ useEffect(()=>{
+  const prevent=(e)=>{if(document.fullscreenElement)e.preventDefault()};
+  const onTouch=(e)=>{
+   if(!document.fullscreenElement)return;
+   const t=e.touches?.[0];
+   if(t&&t.clientY<70)e.preventDefault();
+  };
+  document.addEventListener("touchmove",prevent,{passive:false});
+  document.addEventListener("wheel",prevent,{passive:false});
+  document.addEventListener("gesturestart",prevent,{passive:false});
+  return()=>{document.removeEventListener("touchmove",prevent);document.removeEventListener("wheel",prevent);document.removeEventListener("gesturestart",prevent)};
+ },[]);
+}
+function Editor(){useStudioFullscreenLock();
  const[,t]=useLang();
  const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));
  const[selected,setSelected]=useState(1);
@@ -191,7 +205,17 @@ function Editor(){
  const del=()=>{if(selected==null)return;setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
  const dup=()=>{const o=scene.find(x=>x.id===selected);if(o){const id=Date.now();setScene(s=>[...s,{...o,id,name:o.name+" copy",x:o.x+.6,z:o.z+.6}]);setSelected(id)}};
  const reset=()=>{setScene(sceneSeed);setSelected(sceneSeed[0]?.id||null)};
- const toggleFullscreen=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch{}};
+ const toggleFullscreen=async()=>{
+ try{
+  if(!document.fullscreenElement){
+   const el=document.documentElement;
+   if(el.requestFullscreen) await el.requestFullscreen({navigationUI:"hide"});
+   else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  }else{
+   await document.exitFullscreen();
+  }
+ }catch{}
+};
  useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
  const groups={create:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"]],scene:[["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]]};
  return <main className="page editor-page">
