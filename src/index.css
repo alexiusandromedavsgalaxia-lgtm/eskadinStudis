@@ -262,3 +262,11 @@ h1 span { display: block; }
 .launch-card p{color:var(--muted)}
 @media(max-width:900px){.hero-grid{grid-template-columns:1fr}.hero-copy{text-align:center}.hero-copy .lead{margin:0 auto 34px}.proof{justify-content:center}.featured-row{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.featured-row{grid-template-columns:1fr}.nav-actions .button{display:none}.hero-device{transform:none}.device-scene{height:300px}.toolbar{flex-direction:column}}
+
+.auth-page{display:grid;place-items:center;min-height:calc(100vh - 180px)}
+.auth-card{width:min(470px,100%);box-shadow:0 30px 90px rgba(0,0,0,.3)}
+.danger-card{width:min(520px,100%);border-color:rgba(255,75,100,.3);box-shadow:0 30px 90px rgba(0,0,0,.3)}
+.danger{color:#ff667c!important}
+.danger-button{background:#ff526d;color:#18070b;border-color:#ff526d}
+.danger-button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.auth-card h1,.danger-card h1{font-size:48px;line-height:1;margin:4px 0 4px}
