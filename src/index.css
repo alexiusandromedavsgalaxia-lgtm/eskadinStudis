@@ -623,3 +623,109 @@ body:has(.editor-page) .nav{padding:0 24px}
 .global-sidebar.open{z-index:110}
 .global-menu-button{z-index:120}
 @media(max-width:620px){.global-menu-button{top:50%;left:auto;right:10px;transform:translateY(-50%)}}
+
+
+/* polished Studio drawer */
+.studio-sidebar{
+  width:292px!important;
+  box-sizing:border-box;
+  padding:18px 14px 14px!important;
+  gap:12px!important;
+  background:linear-gradient(180deg,rgba(13,18,27,.985),rgba(7,10,15,.99))!important;
+  border-right:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:28px 0 80px rgba(0,0,0,.52)!important;
+  overflow-x:hidden!important;
+  scrollbar-width:thin;
+}
+.studio-sidebar::-webkit-scrollbar{width:5px}
+.studio-sidebar::-webkit-scrollbar-thumb{background:#303846;border-radius:99px}
+.studio-sidebar-head{
+  padding:2px 4px 14px!important;
+  gap:6px!important;
+  border-bottom:1px solid rgba(255,255,255,.08)!important;
+}
+.studio-sidebar-brand{
+  font-size:17px!important;
+  line-height:1.05!important;
+  letter-spacing:.09em!important;
+}
+.studio-project-side{
+  font-size:9px!important;
+  color:#8791a1!important;
+}
+.studio-sidebar-section{
+  padding:7px 3px 2px!important;
+  font-size:9px!important;
+  color:#788394!important;
+}
+.studio-sidebar-actions,
+.studio-tool-grid{
+  gap:6px!important;
+}
+.studio-sidebar-actions button,
+.studio-nav-actions a,
+.studio-publish{
+  min-height:36px;
+  box-sizing:border-box;
+  padding:9px 10px!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.035)!important;
+  border-color:rgba(255,255,255,.085)!important;
+  color:#b8c1cf!important;
+  transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease;
+}
+.studio-sidebar-actions button:hover,
+.studio-sidebar-actions button.active,
+.studio-nav-actions a:hover,
+.studio-publish:hover{
+  background:rgba(184,255,90,.075)!important;
+  border-color:rgba(184,255,90,.3)!important;
+  color:#efffdc!important;
+  transform:translateY(-1px);
+}
+.studio-tool-grid button{
+  min-height:44px;
+  padding:8px 9px!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.035)!important;
+  border-color:rgba(255,255,255,.085)!important;
+  color:#b8c1cf!important;
+}
+.studio-tool-grid button:hover{
+  background:rgba(255,255,255,.065)!important;
+  color:#eef2f7!important;
+}
+.studio-tool-grid button.active{
+  background:rgba(184,255,90,.075)!important;
+  border-color:rgba(184,255,90,.3)!important;
+  color:var(--accent)!important;
+}
+.studio-tool-grid kbd{
+  background:rgba(0,0,0,.22);
+}
+.studio-language{
+  min-height:38px;
+  box-sizing:border-box;
+  padding:9px 10px!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.035)!important;
+}
+.studio-sidebar-spacer{min-height:22px}
+.bottom-actions{
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.studio-menu-button{
+  width:44px!important;
+  height:44px!important;
+  border-radius:12px!important;
+  background:rgba(9,13,19,.88)!important;
+  border-color:rgba(255,255,255,.12)!important;
+  box-shadow:0 8px 28px rgba(0,0,0,.35)!important;
+}
+.studio-sidebar-backdrop{
+  background:rgba(0,0,0,.56)!important;
+}
+@media(max-width:620px){
+  .studio-sidebar{width:min(310px,88vw)!important;padding:16px 12px 12px!important}
+}
