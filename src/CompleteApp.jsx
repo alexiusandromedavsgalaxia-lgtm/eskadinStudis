@@ -347,7 +347,7 @@ function useStudioFullscreenLock(){
  },[]);
 }
 function Editor(){useStudioFullscreenLock();
- const[,t]=useLang();
+ const[lang,t]=useLang();
  const[sidebarOpen,setSidebarOpen]=useState(false);
  const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));
  const[selected,setSelected]=useState(1);
