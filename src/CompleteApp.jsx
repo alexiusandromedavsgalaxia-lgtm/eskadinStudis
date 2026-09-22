@@ -80,7 +80,7 @@ function meshFor(o){
  return mesh;
 }
 
-function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
+function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false,showAxes=true,snap=false}){
  const hostRef=useRef(null);
  const selectedRef=useRef(selected);
  const toolRef=useRef(tool);
@@ -119,12 +119,12 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
    sun.position.set(5,9,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene3.add(sun);
    const gridHelper=new THREE.GridHelper(24,24,0x445066,0x202838);
    gridHelper.visible=grid;scene3.add(gridHelper);
-   const axes=new THREE.AxesHelper(3.5);scene3.add(axes);
+   const axes=new THREE.AxesHelper(3.5);axes.visible=showAxes;scene3.add(axes);
    const ground=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshStandardMaterial({color:0x0e141d,roughness:1,metalness:0}));
    ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene3.add(ground);
    const objects=[];
    const objectMap=new Map();
-   sceneRef.current.forEach(o=>{const m=meshFor(o);scene3.add(m);objects.push(m);objectMap.set(o.id,m)});
+   sceneRef.current.forEach(o=>{const m=meshFor(o);if(m.material)m.material.wireframe=wireframe;scene3.add(m);objects.push(m);objectMap.set(o.id,m)});
    objectMapRef.current=objectMap;
    const raycaster=new THREE.Raycaster();
    const pointer=new THREE.Vector2();
@@ -142,7 +142,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
      const id=transform.object?.userData?.objectId;
      if(id==null)return;
      const m=transform.object;
-     upd(id,{x:Number(m.position.x.toFixed(3)),y:Number(m.position.y.toFixed(3)),z:Number(m.position.z.toFixed(3)),rx:Number(THREE.MathUtils.radToDeg(m.rotation.x).toFixed(2)),ry:Number(THREE.MathUtils.radToDeg(m.rotation.y).toFixed(2)),rz:Number(THREE.MathUtils.radToDeg(m.rotation.z).toFixed(2)),s:Number(m.scale.x.toFixed(3))});
+     const q=n=>snap?Math.round(n*2)/2:n;upd(id,{x:q(Number(m.position.x.toFixed(3))),y:q(Number(m.position.y.toFixed(3))),z:q(Number(m.position.z.toFixed(3))),rx:Number(THREE.MathUtils.radToDeg(m.rotation.x).toFixed(2)),ry:Number(THREE.MathUtils.radToDeg(m.rotation.y).toFixed(2)),rz:Number(THREE.MathUtils.radToDeg(m.rotation.z).toFixed(2)),s:Number(m.scale.x.toFixed(3))});
    };
    transform.addEventListener("objectChange",sync);
    const selectedObject=objectMap.get(selectedRef.current); if(selectedObject) transform.attach(selectedObject);
@@ -156,7 +156,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
    const animate=()=>{raf=requestAnimationFrame(animate);orbit.update();renderer.render(scene3,camera)};
    animate();
    return()=>{cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener("pointerdown",pick);transform.removeEventListener("objectChange",sync);transform.dispose();orbit.dispose();renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
- },[scene.length,grid]);
+ },[scene.length,grid,wireframe,showAxes,snap]);
  useEffect(()=>{const t=transformRef.current;if(t){t.setMode(tool==="rotate"?"rotate":tool==="scale"?"scale":"translate");if(tool==="select")t.detach();else{const o=objectMapRef.current.get(selectedRef.current);if(o)t.attach(o)}}},[tool]); useEffect(()=>{scene.forEach(o=>{const m=objectMapRef.current.get(o.id);if(m){m.position.set(o.x,o.y,o.z);m.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));m.scale.setScalar(o.s)}})},[scene]);
  useEffect(()=>{const t=transformRef.current;if(t){const o=objectMapRef.current.get(selected);if(o)t.attach(o);else t.detach();}},[selected]);
  useEffect(()=>{const c=hostRef.current;if(c){const el=c.querySelector("canvas");if(el)el.style.touchAction="none";}},[grid]);
@@ -202,7 +202,7 @@ function Editor(){
    </aside>
    <section className="editor-center">
     <div className="viewport-hud"><span>WEBGL VIEWPORT · 3D</span><span>Orbit: drag · Zoom: wheel/pinch · Gizmo: transform</span></div>
-    <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd}/>
+    <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
     <div className="viewport-badges"><span>WebGL 2</span><span>Shadows</span><span>Touch</span><span>{wireframe?"Wireframe":"Solid"}</span><span>{snap?"Snap ON":"Snap OFF"}</span></div>
    </section>
    <aside className="editor-dock right-dock">
