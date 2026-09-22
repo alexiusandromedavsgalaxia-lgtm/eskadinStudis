@@ -449,15 +449,20 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
      const id=transform.object?.userData?.objectId;
      if(id==null)return;
      const m=transform.object;
-     const q=n=>snap?Math.round(n*2)/2:n;upd(id,{x:q(Number(m.position.x.toFixed(3))),y:q(Number(m.position.y.toFixed(3))),z:q(Number(m.position.z.toFixed(3))),rx:Number(THREE.MathUtils.radToDeg(m.rotation.x).toFixed(2)),ry:Number(THREE.MathUtils.radToDeg(m.rotation.y).toFixed(2)),rz:Number(THREE.MathUtils.radToDeg(m.rotation.z).toFixed(2)),s:Number(m.scale.x.toFixed(3))});
+     const q=n=>snap?Math.round(n*2)/2:n;
+     const scale=THREE.MathUtils.clamp((m.scale.x+m.scale.y+m.scale.z)/3,.05,10);
+     upd(id,{x:q(Number(m.position.x.toFixed(3))),y:q(Number(m.position.y.toFixed(3))),z:q(Number(m.position.z.toFixed(3))),rx:Number(THREE.MathUtils.radToDeg(m.rotation.x).toFixed(2)),ry:Number(THREE.MathUtils.radToDeg(m.rotation.y).toFixed(2)),rz:Number(THREE.MathUtils.radToDeg(m.rotation.z).toFixed(2)),s:Number(scale.toFixed(3))});
    };
    const clampScale=()=>{
      const m=transform.object;
      if(!m||toolRef.current!=="scale")return;
-     const s=THREE.MathUtils.clamp(m.scale.x,.05,10);
-     m.scale.setScalar(s);
+     const sx=THREE.MathUtils.clamp(Number.isFinite(m.scale.x)?m.scale.x:1,.05,10);
+     const sy=THREE.MathUtils.clamp(Number.isFinite(m.scale.y)?m.scale.y:1,.05,10);
+     const sz=THREE.MathUtils.clamp(Number.isFinite(m.scale.z)?m.scale.z:1,.05,10);
+     const scale=(sx+sy+sz)/3;
+     m.scale.setScalar(THREE.MathUtils.clamp(scale,.05,10));
    };
-   const onObjectChange=()=>clampScale();
+   const onObjectChange=()=>{if(toolRef.current==="scale")clampScale();};
    const onDraggingChanged=e=>{
      orbit.enabled=!e.value;
      if(e.value) return;
