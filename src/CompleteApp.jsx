@@ -305,32 +305,61 @@ function Play(){
 const sceneSeed=[{id:1,type:"wall",name:"Wall 01",x:0,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:2,type:"cube",name:"Cube 02",x:2,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:3,type:"light",name:"Light 03",x:0,y:3,z:2,rx:0,ry:0,rz:0,s:1}];
 
 function meshFor(o){
- const colors={light:0xffd54a,spawn:0x6aa7ff,camera:0xa78bfa,sound:0xff62b5,text:0xf2f4f8,wall:0x71809a,sphere:0x6fd3ff,cylinder:0x8de08b,cone:0xff9f68,torus:0xd99cff,plane:0x8f9aaa,capsule:0xff7eb6};
+ const colors={light:0xffd54a,spawn:0x6aa7ff,camera:0xa78bfa,sound:0xff62b5,text:0xf2f4f8,wall:0x71809a,sphere:0x6fd3ff,cylinder:0x8de08b,cone:0xff9f68,torus:0xd99cff,plane:0x8f9aaa,capsule:0xff7eb6,floor:0x59697d,fence:0xc68b5b,stairs:0x8f9aaa};
  const material=new THREE.MeshStandardMaterial({color:o.color||colors[o.type]||0x71809a,roughness:o.roughness??.55,metalness:o.metalness??.2});
- let geometry;
- if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
- else if(o.type==="light") geometry=new THREE.SphereGeometry(.42,24,16);
- else if(o.type==="spawn") geometry=new THREE.ConeGeometry(.55,1.2,4);
- else if(o.type==="camera") geometry=new THREE.BoxGeometry(1.1,.7,1.5);
- else if(o.type==="sound") geometry=new THREE.TorusGeometry(.55,.13,12,32);
- else if(o.type==="text") geometry=new THREE.PlaneGeometry(1.8,1);
- else if(o.type==="sphere") geometry=new THREE.SphereGeometry(.75,32,20);
- else if(o.type==="cylinder") geometry=new THREE.CylinderGeometry(.65,.65,1.5,32);
- else if(o.type==="cone") geometry=new THREE.ConeGeometry(.7,1.5,32);
- else if(o.type==="torus") geometry=new THREE.TorusGeometry(.65,.22,18,40);
- else if(o.type==="plane") geometry=new THREE.PlaneGeometry(1.8,1.8);
- else if(o.type==="capsule") geometry=new THREE.CapsuleGeometry(.45,.9,8,16);
- else if(o.type==="floor") geometry=new THREE.PlaneGeometry(8,8);
- else geometry=new THREE.BoxGeometry(1,1,1);
- const mesh=new THREE.Mesh(geometry,material);
- mesh.position.set(o.x,o.y,o.z);
- mesh.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));
- if(o.type==="floor")mesh.rotation.x=-Math.PI/2;
- mesh.scale.setScalar(o.s);
- mesh.userData.objectId=o.id;
- mesh.castShadow=true;
- mesh.receiveShadow=true;
- return mesh;
+ let root;
+ if(o.type==="fence"){
+  root=new THREE.Group();
+  const postMat=material.clone(),railMat=material.clone();
+  for(let x of [-1.8,0,1.8]){
+   const post=new THREE.Mesh(new THREE.BoxGeometry(.18,1.6,.18),postMat);
+   post.position.set(x,.8,0);root.add(post);
+  }
+  for(const y of [.48,1.12]){
+   const rail=new THREE.Mesh(new THREE.BoxGeometry(3.8,.12,.12),railMat);
+   rail.position.set(0,y,0);root.add(rail);
+  }
+ }else if(o.type==="stairs"){
+  root=new THREE.Group();
+  const steps=8,stepW=3.2,stepD=.52,stepH=.25;
+  for(let i=0;i<steps;i++){
+   const step=new THREE.Mesh(new THREE.BoxGeometry(stepW,(i+1)*stepH,stepD),material.clone());
+   step.position.set(0,(i+1)*stepH*.5,i*stepD);
+   root.add(step);
+  }
+ }else{
+  let geometry;
+  if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
+  else if(o.type==="light") geometry=new THREE.SphereGeometry(.42,24,16);
+  else if(o.type==="spawn") geometry=new THREE.ConeGeometry(.55,1.2,4);
+  else if(o.type==="camera") geometry=new THREE.BoxGeometry(1.1,.7,1.5);
+  else if(o.type==="sound") geometry=new THREE.TorusGeometry(.55,.13,12,32);
+  else if(o.type==="text") geometry=new THREE.PlaneGeometry(1.8,1);
+  else if(o.type==="sphere") geometry=new THREE.SphereGeometry(.75,32,20);
+  else if(o.type==="cylinder") geometry=new THREE.CylinderGeometry(.65,.65,1.5,32);
+  else if(o.type==="cone") geometry=new THREE.ConeGeometry(.7,1.5,32);
+  else if(o.type==="torus") geometry=new THREE.TorusGeometry(.65,.22,18,40);
+  else if(o.type==="plane") geometry=new THREE.PlaneGeometry(1.8,1.8);
+  else if(o.type==="capsule") geometry=new THREE.CapsuleGeometry(.45,.9,8,16);
+  else if(o.type==="floor") geometry=new THREE.PlaneGeometry(8,8);
+  else geometry=new THREE.BoxGeometry(1,1,1);
+  root=new THREE.Mesh(geometry,material);
+  if(o.type==="floor")root.rotation.x=-Math.PI/2;
+ }
+ root.position.set(o.x,o.y,o.z);
+ root.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));
+ root.scale.setScalar(o.s);
+ root.userData.objectId=o.id;
+ root.userData.runtimeType=o.type;
+ root.userData.colliderParts=root.userData.colliderParts||null;
+ root.traverse(child=>{
+  child.userData.objectId=o.id;
+  child.userData.runtimeType=o.type==="stairs"?"stair-step":o.type;
+  if(child.isMesh){
+   child.castShadow=true;child.receiveShadow=true;
+  }
+ });
+ return root;
 }
 
 function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false,showAxes=true,snap=false}){
@@ -387,8 +416,8 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
      pointer.x=((e.clientX-rect.left)/rect.width)*2-1;
      pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
      raycaster.setFromCamera(pointer,camera);
-     const hit=raycaster.intersectObjects(objects,false)[0];
-     if(hit?.object?.userData?.objectId!=null){setSelected(hit.object.userData.objectId);transform.attach(hit.object)}
+     const hit=raycaster.intersectObjects(objects,true)[0];
+     if(hit?.object?.userData?.objectId!=null){const id=hit.object.userData.objectId;const owner=objectMap.get(id);setSelected(id);if(owner)transform.attach(owner)}
    };
    renderer.domElement.addEventListener("pointerdown",pick);
    const sync=()=>{
@@ -423,7 +452,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
    animate();
    return()=>{cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener("pointerdown",pick);transform.removeEventListener("objectChange",onObjectChange);transform.removeEventListener("dragging-changed",onDraggingChanged);transform.dispose();orbit.dispose();renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[scene.length,grid,wireframe,showAxes,snap]);
- useEffect(()=>{const t=transformRef.current;if(t){t.setMode(tool==="rotate"?"rotate":tool==="scale"?"scale":"translate");if(tool==="select")t.detach();else{const o=objectMapRef.current.get(selectedRef.current);if(o)t.attach(o)}}},[tool]); useEffect(()=>{scene.forEach(o=>{const m=objectMapRef.current.get(o.id);if(m){m.position.set(o.x,o.y,o.z);m.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));if(o.type==="floor")m.rotation.x=-Math.PI/2;m.scale.setScalar(o.s);if(m.material){if(o.color)m.material.color.set(o.color);m.material.roughness=o.roughness??m.material.roughness;m.material.metalness=o.metalness??m.material.metalness}}})},[scene]);
+ useEffect(()=>{const t=transformRef.current;if(t){t.setMode(tool==="rotate"?"rotate":tool==="scale"?"scale":"translate");if(tool==="select")t.detach();else{const o=objectMapRef.current.get(selectedRef.current);if(o)t.attach(o)}}},[tool]); useEffect(()=>{scene.forEach(o=>{const m=objectMapRef.current.get(o.id);if(m){m.position.set(o.x,o.y,o.z);m.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));m.scale.setScalar(o.s);m.traverse(child=>{if(child.isMesh&&child.material){if(o.color)child.material.color.set(o.color);child.material.roughness=o.roughness??child.material.roughness;child.material.metalness=o.metalness??child.material.metalness}})}})},[scene]);
  useEffect(()=>{const t=transformRef.current;if(t){const o=objectMapRef.current.get(selected);if(o)t.attach(o);else t.detach();}},[selected]);
  useEffect(()=>{const c=hostRef.current;if(c){const el=c.querySelector("canvas");if(el)el.style.touchAction="none";}},[grid]);
  useEffect(()=>{
@@ -464,7 +493,7 @@ function Editor(){useStudioFullscreenLock();
  useEffect(()=>setObj(scene.find(o=>o.id===selected)||null),[scene,selected]);
 
  const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
- const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0],floor:[0,0,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};setScene(s=>[...s,item]);setSelected(id)};
+ const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],floor:[0,0,0],fence:[0,.8,0],stairs:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};setScene(s=>[...s,item]);setSelected(id)};
  const saveScene=()=>{save("eskadin-scene",scene);save("eskadin-project",{name:"Untitled project",scene,updatedAt:new Date().toISOString()});setSaved(true);setTimeout(()=>setSaved(false),1000)};
  const del=()=>{if(selected==null)return;setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
  const dup=()=>{const o=scene.find(x=>x.id===selected);if(o){const id=Date.now();setScene(s=>[...s,{...o,id,name:o.name+" copy",x:o.x+.6,z:o.z+.6}]);setSelected(id)}};
@@ -481,7 +510,14 @@ function Editor(){useStudioFullscreenLock();
  }catch{}
 };
  useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
- const groups={create:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"]],scene:[["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]]};
+ const objectCatalog={
+ es:[["cube","Cubo"],["wall","Pared"],["sphere","Esfera"],["cylinder","Cilindro"],["cone","Cono"],["torus","Toro"],["capsule","Cápsula"],["plane","Plano"],["floor","Suelo"],["fence","Valla"],["stairs","Escaleras"],["light","Luz"],["sound","Sonido"],["spawn","Punto de aparición"],["camera","Cámara"],["text","Texto"]],
+ en:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"],["fence","Fence"],["stairs","Stairs"],["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]],
+ sv:[["cube","Kub"],["wall","Vägg"],["sphere","Sfär"],["cylinder","Cylinder"],["cone","Kon"],["torus","Toroid"],["capsule","Kapsel"],["plane","Plan"],["floor","Golv"],["fence","Staket"],["stairs","Trappa"],["light","Ljus"],["sound","Ljud"],["spawn","Startpunkt"],["camera","Kamera"],["text","Text"]],
+ de:[["cube","Würfel"],["wall","Wand"],["sphere","Kugel"],["cylinder","Zylinder"],["cone","Kegel"],["torus","Torus"],["capsule","Kapsel"],["plane","Ebene"],["floor","Boden"],["fence","Zaun"],["stairs","Treppe"],["light","Licht"],["sound","Ton"],["spawn","Spawn"],["camera","Kamera"],["text","Text"]],
+ fr:[["cube","Cube"],["wall","Mur"],["sphere","Sphère"],["cylinder","Cylindre"],["cone","Cône"],["torus","Tore"],["capsule","Capsule"],["plane","Plan"],["floor","Sol"],["fence","Barrière"],["stairs","Escaliers"],["light","Lumière"],["sound","Son"],["spawn","Apparition"],["camera","Caméra"],["text","Texte"]]
+};
+const groups=objectCatalog[lang]||objectCatalog.en;
  return <main className="page editor-page">
   <button type="button" className="studio-menu-button" title={sidebarOpen?"Close Studio menu":"Open Studio menu"} aria-label={t.add} onClick={()=>setSidebarOpen(v=>!v)}>{sidebarOpen?"×":"☰"}</button>
   {sidebarOpen&&<button type="button" className="studio-sidebar-backdrop" aria-label="Close menu" onClick={()=>setSidebarOpen(false)}/>} 
@@ -490,7 +526,7 @@ function Editor(){useStudioFullscreenLock();
    <aside className="studio-sidebar" aria-hidden={!sidebarOpen}>
     <div className="studio-sidebar-head"><div className="studio-sidebar-brand">Eskådin<br/><span>Stüdis</span></div><strong className="studio-project-side">{t.newGame}</strong></div><div className="studio-sidebar-actions studio-nav-actions"><Link title={t.back} to="/">⌂ {t.back}</Link><Link title={t.explore} to="/games">▶ {t.explore}</Link></div><div className="studio-sidebar-section">{t.language}</div><select className="studio-language" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
     <div className="studio-sidebar-actions">
-     <button title={t.add} onClick={()=>setPanel("create")}>＋ {t.add}</button><button title={t.hierarchy} onClick={()=>setPanel("scene")}>☷ {t.hierarchy}</button><button title={t.assets} onClick={()=>setPanel("create")}>▣ {t.assets}</button><button title={t.scene} onClick={()=>setPanel("scene")}>◉ {t.scene}</button>
+     <button title={t.add} onClick={()=>setPanel("create")}>＋ {t.objects}</button><button title={t.hierarchy} onClick={()=>setPanel("scene")}>☷ {t.hierarchy}</button><button title={t.assets} onClick={()=>setPanel("create")}>▣ {t.objects}</button><button title={t.scene} onClick={()=>setPanel("scene")}>◉ {t.scene}</button>
     </div>
     <div className="studio-sidebar-section">{t.selectTool}</div>
     <div className="studio-tool-grid">
@@ -507,7 +543,7 @@ function Editor(){useStudioFullscreenLock();
     <div className="studio-sidebar-actions">
      <button title={t.duplicate} onClick={dup}>＋ {t.duplicate}</button><button title={t.deleteObject} onClick={del}>⌫ {t.deleteObject}</button><button title={t.reset} onClick={reset}>↺ {t.reset}</button>
     </div>
-    <div className="studio-panel-preview">{panel==="create"&&<><strong>{t.add}</strong><div className="studio-object-grid">{groups.create.map(([type,label])=><button key={type} title={label} onClick={()=>add(type)}>{label}</button>)}{groups.scene.map(([type,label])=><button key={type} title={label} onClick={()=>add(type)}>{label}</button>)}</div></>}{panel==="scene"&&<><strong>{t.hierarchy}</strong><div className="studio-scene-list">{scene.map(o=><button key={o.id} title={o.name} className={selected===o.id?"active":""} onClick={()=>setSelected(o.id)}>{o.name}</button>)}</div></>}</div><div className="studio-sidebar-spacer"/>
+    <div className="studio-panel-preview">{panel==="create"&&<><strong>{t.objects}</strong><div className="studio-object-grid">{groups.map(([type,label])=><button key={type} title={label} aria-label={label} onClick={()=>add(type)}>{label}</button>)}</div></>}{panel==="scene"&&<><strong>{t.hierarchy}</strong><div className="studio-scene-list">{scene.map(o=><button key={o.id} title={o.name} className={selected===o.id?"active":""} onClick={()=>setSelected(o.id)}>{o.name}</button>)}</div></>}</div><div className="studio-sidebar-spacer"/>
     <div className="studio-sidebar-actions bottom-actions">
      <button title={t.fullscreen} onClick={toggleFullscreen}>⛶ {t.fullscreen}</button><button title={t.save} onClick={saveScene}>✓ {saved?t.save:t.save}</button><Link title={t.publish} className="studio-publish" to="/publish">↗ {t.publish}</Link>
     </div>
