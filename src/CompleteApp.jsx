@@ -78,26 +78,30 @@ function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useSt
 
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
 function createEskadinR15Avatar(user={}){
- const root=new THREE.Group();
- const skin=new THREE.MeshStandardMaterial({color:user.skin||0xf2c7a5,roughness:.8});
+ const root=new THREE.Group();root.name="EskadinR15";
+ const skin=new THREE.MeshStandardMaterial({color:user.skin||0xf2c7a5,roughness:.78});
  const shirt=new THREE.MeshStandardMaterial({color:user.shirt||0x5b7cff,roughness:.72});
  const pants=new THREE.MeshStandardMaterial({color:user.pants||0x202638,roughness:.8});
- const limb=(name,w,h,d,mat,x,y,z)=>{const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);g.name=name;g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;root.add(g);return g};
- // Feet touch y=0. Body is compact and proportioned to a human-like R15 silhouette.
- limb("LeftFoot",.48,.22,.78,pants,-.27,.11,-.10); limb("RightFoot",.48,.22,.78,pants,.27,.11,-.10);
- limb("LeftLowerLeg",.40,.55,.42,pants,-.27,.495,0); limb("RightLowerLeg",.40,.55,.42,pants,.27,.495,0);
- limb("LeftUpperLeg",.44,.62,.44,pants,-.27,1.075,0); limb("RightUpperLeg",.44,.62,.44,pants,.27,1.075,0);
- limb("LowerTorso",.90,.48,.48,shirt,0,1.55,0); limb("UpperTorso",1.04,.68,.52,shirt,0,2.10,0);
- limb("LeftUpperArm",.36,.54,.40,shirt,-.70,2.10,0); limb("RightUpperArm",.36,.54,.40,shirt,.70,2.10,0);
- limb("LeftLowerArm",.32,.48,.36,skin,-.70,1.59,0); limb("RightLowerArm",.32,.48,.36,skin,.70,1.59,0);
- limb("LeftHand",.34,.28,.34,skin,-.70,1.21,0); limb("RightHand",.34,.28,.34,skin,.70,1.21,0);
- limb("Head",.66,.62,.66,skin,0,2.82,0);
- if(user.hat==="cap")limb("Cap",.74,.16,.74,shirt,0,3.21,0);
- root.userData.avatarParts=15;
- root.userData.height=3.13;
+ const bone=(name,x,y,z,parent=root)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g};
+ const mesh=(p,name,w,h,d,mat)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat.clone());m.name=name;m.castShadow=true;m.receiveShadow=true;p.add(m);return m};
+ const lowerTorso=bone("LowerTorso",0,1.47,0),upperTorso=bone("UpperTorso",0,.55,0,lowerTorso),neck=bone("Neck",0,.42,0,upperTorso),head=bone("Head",0,.36,0,neck);
+ const lUL=bone("LeftUpperLeg",-0.27,-.34,0,lowerTorso),lLL=bone("LeftLowerLeg",0,-.59,0,lUL),lF=bone("LeftFoot",0,-.56,-.12,lLL);
+ const rUL=bone("RightUpperLeg",.27,-.34,0,lowerTorso),rLL=bone("RightLowerLeg",0,-.59,0,rUL),rF=bone("RightFoot",0,-.56,-.12,rLL);
+ const lUA=bone("LeftUpperArm",-0.67,.27,0,upperTorso),lLA=bone("LeftLowerArm",0,-.55,0,lUA),lH=bone("LeftHand",0,-.49,0,lLA);
+ const rUA=bone("RightUpperArm",.67,.27,0,upperTorso),rLA=bone("RightLowerArm",0,-.55,0,rUA),rH=bone("RightHand",0,-.49,0,rLA);
+ mesh(lowerTorso,"LowerTorso",.86,.50,.48,shirt);mesh(upperTorso,"UpperTorso",1.02,.68,.52,shirt);mesh(head,"Head",.66,.68,.66,skin);
+ mesh(lUL,"LeftUpperLeg",.44,.68,.46,pants);mesh(lLL,"LeftLowerLeg",.40,.62,.42,pants);mesh(lF,"LeftFoot",.46,.22,.72,pants);
+ mesh(rUL,"RightUpperLeg",.44,.68,.46,pants);mesh(rLL,"RightLowerLeg",.40,.62,.42,pants);mesh(rF,"RightFoot",.46,.22,.72,pants);
+ mesh(lUA,"LeftUpperArm",.36,.56,.40,shirt);mesh(lLA,"LeftLowerArm",.32,.52,.36,skin);mesh(lH,"LeftHand",.34,.28,.34,skin);
+ mesh(rUA,"RightUpperArm",.36,.56,.40,shirt);mesh(rLA,"RightLowerArm",.32,.52,.36,skin);mesh(rH,"RightHand",.34,.28,.34,skin);
+ const attachments={};const attach=(name,parent,pos)=>{const a=new THREE.Object3D();a.name=name;a.position.set(...pos);parent.add(a);attachments[name]=a};
+ attach("HairAttachment",head,[0,.39,0]);attach("HatAttachment",head,[0,.42,0]);attach("FaceFrontAttachment",head,[0,0,.34]);attach("NeckAttachment",neck,[0,.03,0]);
+ attach("RightShoulderAttachment",rUA,[0,.28,0]);attach("LeftShoulderAttachment",lUA,[0,.28,0]);attach("BodyFrontAttachment",upperTorso,[0,.1,.27]);attach("BodyBackAttachment",upperTorso,[0,.1,-.27]);attach("WaistCenterAttachment",lowerTorso,[0,-.22,0]);
+ root.userData.avatarParts=15;root.userData.r15=true;root.userData.height=3.13;root.userData.attachments=attachments;
+ root.userData.r15Joints=[["LowerTorso","UpperTorso"],["UpperTorso","Neck"],["Neck","Head"],["LowerTorso","LeftUpperLeg"],["LeftUpperLeg","LeftLowerLeg"],["LeftLowerLeg","LeftFoot"],["LowerTorso","RightUpperLeg"],["RightUpperLeg","RightLowerLeg"],["RightLowerLeg","RightFoot"],["UpperTorso","LeftUpperArm"],["LeftUpperArm","LeftLowerArm"],["LeftLowerArm","LeftHand"],["UpperTorso","RightUpperArm"],["RightUpperArm","RightLowerArm"],["RightLowerArm","RightHand"]];
+ root.userData.animate=(time,moving,grounded)=>{const w=moving?Math.sin(time*9)*.55:0,idle=Math.sin(time*2.2)*.018;lUL.rotation.x=w;rUL.rotation.x=-w;lLL.rotation.x=Math.max(0,-w)*.45;rLL.rotation.x=Math.max(0,w)*.45;lF.rotation.x=-w*.18;rF.rotation.x=w*.18;lUA.rotation.x=-w*.7;rUA.rotation.x=w*.7;lLA.rotation.x=Math.abs(w)*.18;rLA.rotation.x=Math.abs(w)*.18;upperTorso.rotation.z=idle*.45;neck.rotation.z=idle*.2;if(!grounded){lUL.rotation.x=-.18;rUL.rotation.x=.18;lUA.rotation.x=.28;rUA.rotation.x=-.28}};
  return root;
 }
-
 function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const hostRef=useRef(null);
  const runtimeRef=useRef(null);
@@ -161,7 +165,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
 
   const player=createEskadinR15Avatar(read("eskadin-user",{}));
   player.position.set(0,floorY,4);
-  player.scale.setScalar(.61);
+  player.scale.setScalar(.72);
   scene3.add(player);
 
   const velocity=new THREE.Vector3();
@@ -308,6 +312,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    const grounded=player.position.y<=supportY+.015&&velocity.y<=0;
    if(grounded){player.position.y=supportY;velocity.y=0}
    if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7.2;jumpRef.current=false}
+   player.userData.animate?.(now/1000,move.lengthSq()>0.02,grounded);
    player.rotation.y=yaw;
    camera.position.set(player.position.x,player.position.y+1.62,player.position.z);
    camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
