@@ -910,3 +910,82 @@ body:has(.editor-page) .nav{padding:0 24px}
     font-size:14px!important;
   }
 }
+
+
+/* Roblox-inspired social interface */
+.signup-page{
+ min-height:100dvh;
+ background:
+  radial-gradient(circle at 18% 20%,rgba(91,124,255,.18),transparent 30%),
+  radial-gradient(circle at 82% 76%,rgba(184,255,90,.09),transparent 28%),
+  #090d14;
+ color:#f4f7fb;
+ padding:28px 5vw 50px;
+ box-sizing:border-box;
+}
+.signup-brand{font-size:24px;font-weight:950;letter-spacing:-.05em;max-width:1180px;margin:auto}
+.signup-brand span{color:var(--accent)}
+.signup-brand sup{font-size:8px;margin-left:2px}
+.signup-shell{max-width:1180px;margin:5vh auto 0;display:grid;grid-template-columns:1fr minmax(360px,460px);gap:70px;align-items:center}
+.signup-copy{position:relative;min-height:600px;display:flex;flex-direction:column;justify-content:center}
+.signup-copy h1{font-size:clamp(48px,6vw,82px);line-height:.94;letter-spacing:-.065em;margin:14px 0 20px}
+.signup-copy h1 strong{color:var(--accent)}
+.signup-copy p{max-width:530px;color:#aab5c5;font-size:17px;line-height:1.6}
+.roblox-kicker{font:900 10px ui-monospace,monospace;letter-spacing:.18em;color:#8290a5}
+.signup-card{
+ background:#111722;
+ border:1px solid rgba(255,255,255,.1);
+ border-radius:20px;
+ padding:28px;
+ box-shadow:0 25px 80px rgba(0,0,0,.42);
+}
+.signup-tabs{display:flex;justify-content:space-between;align-items:center;padding-bottom:17px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}
+.signup-tabs b{color:#fff}.signup-tabs a{color:#8d9aad;font-weight:800}
+.signup-card h2{font-size:30px;margin:24px 0}
+.signup-card label{display:block;color:#aeb8c7;font-size:12px;font-weight:800;margin:12px 0}
+.signup-card input{width:100%;box-sizing:border-box;margin-top:7px;padding:14px 13px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0b1018;color:#fff;outline:none}
+.signup-card input:focus{border-color:rgba(184,255,90,.6)}
+.avatar-custom{margin-top:20px;padding:15px;border-radius:13px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.avatar-custom>b{font-size:12px}
+.avatar-custom>div{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px}
+.avatar-custom span{width:75px;color:#8794a8;font-size:11px;font-weight:800}
+.avatar-custom button{width:30px;height:30px;border:2px solid transparent;border-radius:8px;cursor:pointer}
+.avatar-custom button.chosen{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.avatar-option{width:auto!important;height:32px!important;padding:0 9px;color:#dfe5ed;background:#1c2533;border:1px solid #303a4b!important;font-size:11px;font-weight:800}
+.signup-submit{width:100%;margin-top:20px;border:0;border-radius:11px;padding:15px;background:var(--accent);color:#0b1106;font-weight:950;font-size:15px;cursor:pointer}
+.signup-submit span{float:right}
+.signup-card small{display:block;text-align:center;color:#69768a;margin-top:13px;font-size:10px}
+
+/* block avatar */
+.avatar{position:relative;display:flex;flex-direction:column;align-items:center;flex:none;filter:drop-shadow(0 14px 18px rgba(0,0,0,.28))}
+.avatar-xs{width:38px;height:50px;transform:scale(.78);transform-origin:center}
+.avatar-md{width:105px;height:155px}
+.avatar-lg{width:180px;height:270px;margin-top:30px;align-self:flex-start}
+.avatar-xl{width:220px;height:330px}
+.avatar-head{position:relative;width:62px;height:62px;border-radius:10px;margin-bottom:5px;z-index:3}
+.avatar-lg .avatar-head{width:105px;height:105px}.avatar-xl .avatar-head{width:130px;height:130px}
+.avatar-head i{position:absolute;width:7px;height:10px;border-radius:50%;background:#171b22;top:28px}.avatar-head i:first-child{left:17px}.avatar-head i:nth-child(2){right:17px}
+.avatar-head b{position:absolute;width:20px;height:5px;border-bottom:2px solid #6d4032;border-radius:50%;left:50%;top:44px;transform:translateX(-50%)}
+.avatar-body{position:relative;width:72px;height:68px;border-radius:7px;z-index:2;display:grid;place-items:center}.avatar-md .avatar-body{width:80px;height:78px}.avatar-lg .avatar-body{width:125px;height:120px}.avatar-xl .avatar-body{width:150px;height:140px}
+.avatar-logo{font-size:20px;font-weight:950;color:rgba(255,255,255,.7)}
+.avatar-arms{position:absolute;top:67px;display:flex;justify-content:space-between;width:116px;z-index:1}.avatar-arms i{width:18px;height:68px;border-radius:5px}.avatar-lg .avatar-arms{top:115px;width:175px}.avatar-lg .avatar-arms i{width:28px;height:105px}.avatar-xl .avatar-arms{top:140px;width:205px}.avatar-xl .avatar-arms i{width:35px;height:125px}
+.avatar-legs{display:flex;gap:7px;margin-top:5px}.avatar-legs i{width:31px;height:70px;border-radius:5px}.avatar-lg .avatar-legs i{width:52px;height:100px}.avatar-xl .avatar-legs i{width:62px;height:125px}
+.avatar-hat{position:absolute;z-index:5;top:-13px;height:30px}.avatar-hat span{display:block;font-size:28px;color:#ffd84d;text-shadow:0 3px 10px rgba(0,0,0,.4)}.avatar-hat:has(span:not(:empty)){ }.avatar-hat span:first-child:empty{width:70px;height:20px;background:#e95d6a;border-radius:12px 12px 4px 4px}
+.avatar-lg .avatar-hat span:first-child:empty{width:115px;height:31px}.avatar-xl .avatar-hat span:first-child:empty{width:140px;height:36px}
+
+/* social pages */
+.roblox-page{max-width:1180px;margin:auto;padding:38px 24px 60px}
+.roblox-titlebar{display:flex;align-items:end;justify-content:space-between;margin-bottom:28px}
+.roblox-titlebar h1{font-size:42px;margin:5px 0 0;letter-spacing:-.04em}
+.roblox-pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:9px;background:#202a3a;color:#fff;font-weight:850;border:1px solid rgba(255,255,255,.08)}
+.roblox-pill:hover{background:#2a3548}
+.chat-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px}
+.chat-card,.chat-side,.roblox-card{background:#111722;border:1px solid rgba(255,255,255,.09);border-radius:16px}
+.chat-card{overflow:hidden;min-height:620px;display:flex;flex-direction:column}
+.chat-head{padding:17px 20px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between}.chat-head span{color:#758297;font-size:11px}
+.chat-messages{padding:18px;display:flex;flex-direction:column;gap:15px;flex:1;overflow:auto}
+.chat-message{display:flex;gap:10px;align-items:flex-start}.chat-message b{font-size:12px}.chat-message p{margin:3px 0 0;color:#aab5c5;line-height:1.45}
+.chat-compose{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,.07)}.chat-compose input{flex:1;border:1px solid #2b3545;background:#0b1018;color:#fff;border-radius:10px;padding:13px}.chat-compose button{width:48px;border:0;border-radius:10px;background:var(--accent);font-weight:900}
+.chat-side{padding:18px;height:max-content}.online-user{display:flex;align-items:center;gap:9px;margin-top:15px}.online-user small{display:block;color:#65d38a;font-size:10px;margin-top:2px}.chat-tip{margin-top:30px;padding:12px;border-radius:10px;background:rgba(184,255,90,.06);color:#9da9bb;font-size:11px;line-height:1.5}
+.profile-hero{display:flex;gap:50px;align-items:center;padding:30px 10px 45px;border-bottom:1px solid rgba(255,255,255,.08)}.profile-hero h1{font-size:52px;margin:8px 0 4px}.profile-hero p{color:#7d8ba0}.profile-actions{display:flex;gap:8px;margin-top:18px}.profile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}.roblox-card{padding:20px}.roblox-card h2{margin-top:0}.roblox-card p{color:#929fb2}.profile-stats{display:flex;gap:28px;margin-top:25px}.profile-stats b{font-size:25px}.profile-stats small{display:block;color:#738096;font-size:10px;text-transform:uppercase}.avatar-preview-row{display:flex;align-items:center;gap:18px;min-height:190px;color:#8d99aa}
+@media(max-width:800px){.signup-shell{grid-template-columns:1fr;gap:15px;margin-top:35px}.signup-copy{min-height:auto}.signup-copy h1{font-size:48px}.signup-copy .avatar-lg{display:none}.signup-card{padding:20px}.chat-layout,.profile-grid{grid-template-columns:1fr}.chat-side{display:none}.profile-hero{gap:20px}.profile-hero h1{font-size:36px}.profile-avatar .avatar-xl{transform:scale(.75);transform-origin:left center;margin-right:-55px}}
