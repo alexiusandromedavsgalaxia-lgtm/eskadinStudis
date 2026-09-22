@@ -865,3 +865,48 @@ body:has(.editor-page) .nav{padding:0 24px}
 .runtime-pause-menu button{min-height:48px;padding:11px 16px;border:0;border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:700;text-align:left;touch-action:manipulation}
 .runtime-pause-menu button:active{transform:scale(.98)}
 @media(min-width:800px){.runtime-menu-button{width:58px;height:58px}.runtime-pause-menu{top:88px}}
+
+
+/* Complete Studio object library */
+.studio-panel-preview{
+  padding:12px!important;
+  gap:10px!important;
+}
+.studio-panel-preview>strong{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:28px;
+  color:#eef2f7!important;
+  font-size:11px!important;
+}
+.studio-object-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+  max-height:430px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding-right:2px;
+}
+.studio-object-grid button{
+  min-height:50px!important;
+  padding:10px 9px!important;
+  border-radius:9px!important;
+  font-size:13px!important;
+  line-height:1.15!important;
+  white-space:normal!important;
+  text-overflow:clip!important;
+}
+.studio-object-grid button:hover{
+  transform:translateY(-1px);
+}
+@media(max-width:620px){
+  .studio-object-grid{
+    max-height:480px!important;
+    gap:8px!important;
+  }
+  .studio-object-grid button{
+    min-height:54px!important;
+    font-size:14px!important;
+  }
+}
