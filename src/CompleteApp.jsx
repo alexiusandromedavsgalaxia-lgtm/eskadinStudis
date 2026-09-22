@@ -259,14 +259,14 @@ function GameRuntime({game,onExit,onRestart}){
   };
  },[]);
  const[menuOpen,setMenuOpen]=useState(false);
- const toggleMenu=()=>{setMenuOpen(v=>{pausedRef.current=!v;return !v})};
+ const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};
  const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
  return <div ref={runtimeRef} className="game-runtime">
   <div ref={hostRef} className="game-runtime-canvas"/>
   <div className="touch-look-zone" data-look aria-hidden="true"/>
   <div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div>
   <button type="button" className="touch-jump" data-jump>JUMP</button>
-  <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span>E</span></button>
+  <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button>
   {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label="Game menu">
    <button type="button" onClick={continueGame}>Continuar</button>
    <button type="button" onClick={onRestart}>Reiniciar</button>
@@ -282,7 +282,7 @@ function Play(){
  if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay ningún juego para jugar.</h2><Link className="button button-primary" to="/games">{t.explore}</Link></div></main>;
  const launch=async()=>{try{const el=document.documentElement;if(!document.fullscreenElement){if(el.requestFullscreen)await el.requestFullscreen({navigationUI:"hide"});else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen()}}catch{}setStarted(true)};
  const exit=async()=>{try{if(document.fullscreenElement&&document.exitFullscreen)await document.exitFullscreen()}catch{}setStarted(false)};
- if(started)return <main className="page play-full"><GameRuntime key={gameRunKey} game={game} onExit={exit} onRestart={()=>setGameRunKey(k=>k+1)}/></main>;
+ if(started)return <div className="play-full"><GameRuntime key={gameRunKey} game={game} onExit={exit} onRestart={()=>setGameRunKey(k=>k+1)}/></div>;
  return <main className="page play"><div className="playbar"><Link to={"/games/"+game.id}>← {t.back}</Link><b>{game.title}</b><span>READY</span></div><div className="game-viewport"><div className="launch-card"><span>PLAYABLE GAME</span><h2>{game.title}</h2><p>{game.description}</p><button className="button button-primary" onClick={launch}>▶ {t.play} · FULLSCREEN</button></div></div></main>
 }
 
