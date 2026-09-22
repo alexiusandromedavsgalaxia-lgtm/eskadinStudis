@@ -346,7 +346,7 @@ function Editor(){useStudioFullscreenLock();
  return <main className="page editor-page">
   <div className="editor-shell">
    <aside className="studio-sidebar">
-    <div className="studio-sidebar-head"><div className="studio-sidebar-brand">Eskådin<br/><span>Stüdis</span></div><strong className="studio-project-side">Untitled project</strong></div>
+    <div className="studio-sidebar-head"><div className="studio-sidebar-brand">Eskådin<br/><span>Stüdis</span></div><strong className="studio-project-side">Untitled project</strong></div><div className="studio-sidebar-actions studio-nav-actions"><Link to="/">⌂ {t.back}</Link><Link to="/games">▶ {t.explore}</Link></div><div className="studio-sidebar-section">{t.language}</div><select className="studio-language" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
     <div className="studio-sidebar-actions">
      <button onClick={()=>setPanel("create")}>＋ {t.add}</button><button onClick={()=>setPanel("scene")}>☷ {t.hierarchy}</button><button onClick={()=>setPanel("create")}>▣ {t.assets}</button><button onClick={()=>setPanel("scene")}>◉ {t.scene}</button>
     </div>
@@ -357,7 +357,7 @@ function Editor(){useStudioFullscreenLock();
      <button className={tool==="rotate"?"active":""} onClick={()=>setTool("rotate")}>↻<span>{t.rotate}</span><kbd>E</kbd></button>
      <button className={tool==="scale"?"active":""} onClick={()=>setTool("scale")}>⤢<span>{t.scale}</span><kbd>R</kbd></button>
     </div>
-    <div className="studio-sidebar-section">VIEW</div>
+    <div className="studio-sidebar-section">{t.view}</div>
     <div className="studio-sidebar-actions">
      <button className={grid?"active":""} onClick={()=>setGrid(!grid)}>▦ {t.grid}</button><button className={snap?"active":""} onClick={()=>setSnap(!snap)}>⌗ {t.snap}</button><button className={wireframe?"active":""} onClick={()=>setWireframe(!wireframe)}>◇ {t.wireframe}</button><button className={showAxes?"active":""} onClick={()=>setShowAxes(!showAxes)}>XYZ {t.axes}</button>
     </div>
@@ -373,15 +373,15 @@ function Editor(){useStudioFullscreenLock();
    <div className="editor-main">
     <div className="editor-workspace">
      <aside className="editor-dock left-dock">
-      <div className="dock-tabs"><button className={panel==="create"?"active":""} onClick={()=>setPanel("create")}>CREATE</button><button className={panel==="scene"?"active":""} onClick={()=>setPanel("scene")}>SCENE</button></div>
+      <div className="dock-tabs"><button className={panel==="create"?"active":""} onClick={()=>setPanel("create")}>{t.createTab}</button><button className={panel==="scene"?"active":""} onClick={()=>setPanel("scene")}>{t.sceneTab}</button></div>
       {panel==="create"&&<><div className="dock-section-title">{t.primitives}</div><div className="primitive-grid">{groups.create.map(([type,label])=><button key={type} onClick={()=>add(type)}><span>{type==="sphere"?"●":type==="cylinder"?"◉":type==="torus"?"◎":type==="plane"?"▱":type==="wall"?"▰":"◆"}</span>{label}</button>)}</div><div className="dock-section-title">{t.sceneObjects}</div><div className="primitive-grid">{groups.scene.map(([type,label])=><button key={type} onClick={()=>add(type)}><span>✦</span>{label}</button>)}</div></>}
       {panel==="scene"&&<div className="object-list object-list-large">{scene.map(o=><button className={o.id===selected?"selected":""} onClick={()=>setSelected(o.id)} key={o.id}><span>{o.type}</span><b>{o.name}</b></button>)}</div>}
      </aside>
      <section className="editor-center">
-      <div className="viewport-project"><strong>Untitled project</strong><span>● LOCAL · {scene.length} OBJECTS</span></div>
-      <div className="viewport-hud"><span>WEBGL VIEWPORT · 3D</span><span>Orbit: drag · Zoom: wheel/pinch · Gizmo: transform</span></div>
+      <div className="viewport-project"><strong>Untitled project</strong><span>● {t.local} · {scene.length} {t.objectsCount}</span></div>
+      <div className="viewport-hud"><span>{t.viewport}</span><span>{t.orbit}</span></div>
       <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
-      <div className="viewport-badges"><span>WebGL 2</span><span>Shadows</span><span>Touch</span><span>{wireframe?"Wireframe":"Solid"}</span><span>{snap?"Snap ON":"Snap OFF"}</span></div>
+      <div className="viewport-badges"><span>{t.webgl}</span><span>{t.shadows}</span><span>{t.touch}</span><span>{wireframe?t.wire:t.solid}</span><span>{snap?t.snapOn:t.snapOff}</span></div>
      </section>
      <aside className="editor-dock right-dock">
       <div className="dock-heading"><span>{t.inspector}</span><span>{obj?.type||"—"}</span></div>
@@ -390,7 +390,7 @@ function Editor(){useStudioFullscreenLock();
      </aside>
     </div>
     <div className="editor-control-footer"><button onClick={()=>setTool("select")}>{t.selectTool}</button><button onClick={()=>setTool("move")}>{t.move}</button><button onClick={()=>setTool("rotate")}>{t.rotate}</button><button onClick={()=>setTool("scale")}>{t.scale}</button><button onClick={dup}>{t.duplicate}</button><button onClick={del}>{t.deleteObject}</button><button onClick={saveScene}>{t.save}</button></div>
-    <div className="editor-statusbar"><span>ESCÅDIN 3D STUDIO · {scene.length} objects · local project</span><span>Ctrl+S Save · Q Select · W Move · E Rotate · R Scale · Del Delete</span></div>
+    <div className="editor-statusbar"><span>{t.sceneStats.replace("{n}",scene.length)}</span><span>{t.shortcuts}</span></div>
    </div>
   </div>
  </main>
