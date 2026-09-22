@@ -270,3 +270,5 @@ h1 span { display: block; }
 .danger-button{background:#ff526d;color:#18070b;border-color:#ff526d}
 .danger-button:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .auth-card h1,.danger-card h1{font-size:48px;line-height:1;margin:4px 0 4px}
+
+.account-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.account-actions .danger-button{grid-column:1/-1}@media(max-width:520px){.account-actions{grid-template-columns:1fr}}
