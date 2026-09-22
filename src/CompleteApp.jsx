@@ -96,8 +96,9 @@ function GameRuntime({game,onExit,onRestart}){
     box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box);
    }
   }
-  const playerRadius=.38;
-  const playerHeight=1.8;
+  const playerRadius=.32;
+  const playerHeight=1.9;
+  const stepHeight=.42;
   const colliders=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
   const colliderBoxes=colliders.map(m=>{const box=new THREE.Box3().setFromObject(m);return {mesh:m,box}});
   let floorY=0;
@@ -133,8 +134,21 @@ function GameRuntime({game,onExit,onRestart}){
   };
   const resolveHorizontal=(nextX,nextZ)=>{
    let x=player.position.x,z=player.position.z;
-   if(!horizontalCollides(nextX,z,player.position.y))x=nextX;
+   let stepped=false;
+   const baseY=player.position.y;
+   if(!horizontalCollides(nextX,z,baseY))x=nextX;
+   else if(velocity.y<=.05&&
+           !horizontalCollides(nextX,z,baseY+stepHeight)){
+    x=nextX;
+    player.position.y=baseY+stepHeight;
+    stepped=true;
+   }
    if(!horizontalCollides(x,nextZ,player.position.y))z=nextZ;
+   else if(!stepped&&velocity.y<=.05&&
+           !horizontalCollides(x,nextZ,baseY+stepHeight)){
+    z=nextZ;
+    player.position.y=baseY+stepHeight;
+   }
    return {x,z};
   };
   const forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
@@ -245,7 +259,7 @@ function GameRuntime({game,onExit,onRestart}){
    if(grounded){player.position.y=supportY;velocity.y=0}
    if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7.2;jumpRef.current=false}
    player.rotation.y=yaw;
-   camera.position.set(player.position.x,player.position.y+1.55,player.position.z);
+   camera.position.set(player.position.x,player.position.y+1.62,player.position.z);
    camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
    renderer.render(scene3,camera);
   };
