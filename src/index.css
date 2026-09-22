@@ -477,3 +477,37 @@ body:has(.editor-page) .nav{padding:0 24px}
 .runtime-exit{z-index:8}
 .runtime-crosshair{z-index:5}
 .runtime-hint{z-index:5}
+
+/* editor stability patch */
+.editor-page{width:100%;max-width:none;margin:0;padding:0;height:100dvh;min-height:100dvh;overflow:hidden}
+.editor-shell{display:grid;grid-template-columns:230px minmax(0,1fr);width:100%;height:100%;min-width:0;min-height:0;flex:1}
+.editor-main{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
+.editor-main .editor-workspace{width:100%;height:auto;min-width:0;min-height:0;flex:1;overflow:hidden}
+.editor-main .editor-center{min-width:0;min-height:0;width:100%;height:100%}
+.editor-main .three-editor-viewport{min-width:0;min-height:0;width:100%;height:100%}
+.editor-main .editor-dock{min-width:0;min-height:0}
+@media(max-width:1100px){
+ .editor-shell{grid-template-columns:64px minmax(0,1fr)}
+ .studio-sidebar{padding:8px 5px;gap:6px}
+ .studio-sidebar-head{padding:4px 2px 9px}
+ .studio-sidebar-brand{font-size:10px}
+ .studio-project-side,.studio-sidebar-section{display:none}
+ .studio-sidebar-actions,.studio-tool-grid{grid-template-columns:1fr}
+ .studio-sidebar-actions button,.studio-nav-actions a,.studio-publish{font-size:0;text-align:center;padding:9px 4px}
+ .studio-tool-grid button{grid-template-columns:1fr;justify-items:center;padding:9px 3px}
+ .studio-tool-grid button span,.studio-tool-grid button kbd{display:none}
+ .editor-main .editor-workspace{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 190px;gap:6px}
+ .editor-main .left-dock{display:none}
+ .editor-main .editor-center{order:0}
+ .editor-main .right-dock{order:1;max-height:190px}
+ .editor-main .editor-statusbar{display:none}
+ .editor-control-footer{left:6px;bottom:6px;max-width:calc(100% - 12px);overflow:auto}
+}
+@media(max-width:620px){
+ .editor-shell{grid-template-columns:58px minmax(0,1fr)}
+ .editor-main .editor-workspace{grid-template-rows:minmax(0,1fr) 175px}
+ .editor-main .right-dock{max-height:175px}
+ .editor-page .editor-control-footer{display:none}
+ .viewport-project{top:6px;right:6px}
+ .viewport-project strong{font-size:9px}
+}
