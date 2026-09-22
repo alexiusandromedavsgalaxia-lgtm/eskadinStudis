@@ -611,3 +611,15 @@ body:has(.editor-page) .nav{padding:0 24px}
   .global-sidebar{width:min(300px,88vw)}
   .global-menu-button{top:10px;right:10px;width:38px;height:38px}
 }
+
+
+/* final global drawer isolation */
+.nav{position:relative;isolation:isolate}
+.global-menu-button{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.global-sidebar{top:0;bottom:0;left:0;right:auto;margin:0!important;max-width:90vw;overflow-y:auto;overflow-x:hidden}
+.global-sidebar-links{width:100%}
+.global-sidebar-links a{width:100%;box-sizing:border-box}
+.global-sidebar-backdrop{z-index:109}
+.global-sidebar.open{z-index:110}
+.global-menu-button{z-index:120}
+@media(max-width:620px){.global-menu-button{top:50%;left:auto;right:10px;transform:translateY(-50%)}}
