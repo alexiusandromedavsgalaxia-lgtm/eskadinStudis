@@ -1,5 +1,8 @@
 import {createContext,useContext,useEffect,useMemo,useRef,useState} from "react";
 import {Link,NavLink,Route,Routes,useNavigate,useParams} from "react-router-dom";
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+import {TransformControls} from "three/addons/controls/TransformControls.js";
 
 const LANG={es:"ES",en:"EN",sv:"SV",de:"DE",fr:"FR"};
 const TXT={
@@ -9,7 +12,25 @@ sv:{explore:"Utforska",create:"Skapa",developer:"Utvecklare",account:"Konto",log
 de:{explore:"Entdecken",create:"Erstellen",developer:"Entwickler",account:"Konto",login:"Anmelden",register:"Konto erstellen",logout:"Abmelden",delete:"Konto löschen",publish:"Veröffentlichen",save:"Speichern",missions:"Missionen",wallet:"F¢",settings:"Einstellungen",projects:"Projekte",play:"Spielen",like:"Gefällt mir",back:"Zurück",objects:"OBJEKTE",properties:"EIGENSCHAFTEN",search:"Spiele suchen…",newGame:"Neues Spiel"},
 fr:{explore:"Explorer",create:"Créer",developer:"Développeur",account:"Compte",login:"Connexion",register:"Créer un compte",logout:"Déconnexion",delete:"Supprimer le compte",publish:"Publier",save:"Enregistrer",missions:"Missions",wallet:"F¢",settings:"Réglages",projects:"Projets",play:"Jouer",like:"J'aime",back:"Retour",objects:"OBJETS",properties:"PROPRIÉTÉS",search:"Rechercher des jeux…",newGame:"Nouveau jeu"}};
 const seed=[];
-const reserved=["keplerians","roblox corporation","dvloper","granny","evil nun","ice scream","mr meat","datavaseloper"];
+const reservedCompanies=[
+"keplerians","roblox","roblox corporation","dvloper","granny","evil nun","ice scream","mr meat","datavaseloper",
+"apple","microsoft","google","alphabet","amazon","meta","facebook","instagram","whatsapp","x corp","twitter",
+"tiktok","bytedance","sony","playstation","nintendo","xbox","valve","steam","epic games","unity","unreal engine",
+"godot","minecraft","mojang","discord","openai","chatgpt","gemini","anthropic","nvidia","samsung","xiaomi",
+"spotify","netflix","youtube","telegram","snapchat","ea","electronic arts","ubisoft","activision","blizzard",
+"take two","rockstar games","bandai namco","sega","capcom","square enix","konami","supercell","riot games",
+"cd projekt red","bethesda","zynga","fortnite","valorant","league of legends"
+];
+const confusableMap={"а":"a","е":"e","о":"o","р":"p","с":"c","х":"x","у":"y","к":"k","м":"m","н":"h","т":"t","і":"i","һ":"h","@":"a","$":"s","0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","8":"b","9":"g"};
+const normalizeIdentity=v=>String(v||"").normalize("NFKD").toLowerCase().replace(/[\u0300-\u036f]/g,"").split("").map(c=>confusableMap[c]||c).join("").replace(/[^a-z0-9]/g,"");
+const blockedIdentity=name=>{
+ const n=normalizeIdentity(name);
+ return reservedCompanies.some(company=>{
+   const c=normalizeIdentity(company);
+   if(!c)return false;
+   return n===c || n.includes(c);
+ });
+};
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
@@ -29,23 +50,130 @@ function Game(){const[,t]=useLang();const{id}=useParams();const[games]=useGames(
 function Play(){const[,t]=useLang();const{id}=useParams();const[games]=useGames();const game=games.find(g=>String(g.id)===id)||games[0];const[started,setStarted]=useState(false);return <main className="page play"><div className="playbar"><Link to={"/games/"+game.id}>← {t.back}</Link><b>{game.title}</b><span>{started?"LIVE":"READY"}</span></div><div className="game-viewport">{started?<div className="play-message"><strong>ESKÅDIN RUNTIME</strong><small>Scene loaded · session active</small></div>:<div className="launch-card"><span>PLAYABLE PREVIEW</span><h2>{game.title}</h2><p>{game.description}</p><button className="button button-primary" onClick={()=>setStarted(true)}>▶ {t.play}</button></div>}</div></main>}
 
 const sceneSeed=[{id:1,type:"wall",name:"Wall 01",x:0,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:2,type:"cube",name:"Cube 02",x:2,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:3,type:"light",name:"Light 03",x:0,y:3,z:2,rx:0,ry:0,rz:0,s:1}];
-function Editor(){const[,t]=useLang();const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));const[selected,setSelected]=useState(1);const[tool,setTool]=useState("select");const[saved,setSaved]=useState(false);const[grid,setGrid]=useState(true);const[drag,setDrag]=useState(null);const canvasRef=useRef(null);const obj=scene.find(o=>o.id===selected);
-const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
-const add=type=>{const id=Date.now();setScene(s=>[...s,{id,type,name:type+" "+(s.length+1),x:0,y:0,z:0,rx:0,ry:0,rz:0,s:1}]);setSelected(id)};
-const saveScene=()=>{save("eskadin-scene",scene);setSaved(true);setTimeout(()=>setSaved(false),1000)};
-const del=()=>{setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
-const dup=()=>obj&&setScene(s=>[...s,{...obj,id:Date.now(),name:obj.name+" copy",x:obj.x+.5,z:obj.z+.5}]);
-const pointerDown=e=>{if(!obj||tool!=="select")return;e.currentTarget.setPointerCapture?.(e.pointerId);setDrag({id:obj.id,x:e.clientX,y:e.clientY,ox:obj.x,oz:obj.z})};
-const pointerMove=e=>{if(!drag)return;const dx=(e.clientX-drag.x)/35,dz=(e.clientY-drag.y)/35;upd(drag.id,{x:Math.round((drag.ox+dx)*10)/10,z:Math.round((drag.oz+dz)*10)/10})};
-const pointerUp=()=>setDrag(null);
-return <main className="page editor-page"><div className="page-head"><div><div className="eyebrow">ESKÅDIN CREATOR · 3D</div><h1 className="page-title">{t.create}</h1><p>Touch, mouse and pointer controls. The scene is an actual editable 3D-style workspace.</p></div><div className="actions"><button className="button button-ghost" onClick={saveScene}>{saved?"✓ "+t.save:t.save}</button><Link className="button button-primary" to="/publish">{t.publish}</Link></div></div>
-<div className="editor-toolbar"><button className={tool==="select"?"active":""} onClick={()=>setTool("select")}>↖ Select</button><button className={tool==="move"?"active":""} onClick={()=>setTool("move")}>✥ Move</button><button className={tool==="rotate"?"active":""} onClick={()=>setTool("rotate")}>↻ Rotate</button><button className={tool==="scale"?"active":""} onClick={()=>setTool("scale")}>⤢ Scale</button><span className="tool-spacer"/><button onClick={()=>setGrid(!grid)}>{grid?"▦ Grid":"□ Grid"}</button><button onClick={dup}>＋ Duplicate</button><button onClick={del}>⌫ Delete</button><button onClick={()=>setScene(sceneSeed)}>↺ Reset</button></div>
-<div className="editor-layout"><aside className="editor-side"><b>{t.objects}</b>{["wall","cube","light","sound","spawn","camera","text"].map(type=><button key={type} onClick={()=>add(type)}>＋ {type}</button>)}<div className="object-list">{scene.map(o=><button className={o.id===selected?"selected":""} onClick={()=>setSelected(o.id)} key={o.id}>{o.name}</button>)}</div></aside>
-<div className={"editor-canvas real3d "+(grid?"with-grid":"")} ref={canvasRef} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}><div className="viewport-hud"><span>3D VIEWPORT</span><span>drag = X/Z</span></div><div className="axis axis-x"/><div className="axis axis-z"/>{scene.map(o=><button key={o.id} className={"scene-object3d "+o.type+(o.id===selected?" selected":"")} style={{left:"calc(50% + "+(o.x*38)+"px)",top:"calc(50% - "+(o.z*38-o.y*25)+"px)",transform:"translate(-50%,-50%) rotate("+o.ry+"deg) scale("+o.s+")"}} onPointerDown={e=>{setSelected(o.id);pointerDown(e)}}>{o.type==="text"?"T":o.type==="light"?"◉":o.type==="camera"?"▱":o.type==="spawn"?"⌁":"◆"}<small>{o.name}</small></button>)}</div>
-<aside className="properties"><b>{t.properties}</b>{obj?<><label>Name<input value={obj.name} onChange={e=>upd(obj.id,{name:e.target.value})}/></label><div className="xyz"><label>X<input type="number" step=".1" value={obj.x} onChange={e=>upd(obj.id,{x:Number(e.target.value)})}/></label><label>Y<input type="number" step=".1" value={obj.y} onChange={e=>upd(obj.id,{y:Number(e.target.value)})}/></label><label>Z<input type="number" step=".1" value={obj.z} onChange={e=>upd(obj.id,{z:Number(e.target.value)})}/></label></div><div className="xyz"><label>RX<input type="number" value={obj.rx} onChange={e=>upd(obj.id,{rx:Number(e.target.value)})}/></label><label>RY<input type="number" value={obj.ry} onChange={e=>upd(obj.id,{ry:Number(e.target.value)})}/></label><label>RZ<input type="number" value={obj.rz} onChange={e=>upd(obj.id,{rz:Number(e.target.value)})}/></label></div><label>Scale<input type="number" step=".1" min=".1" value={obj.s} onChange={e=>upd(obj.id,{s:Number(e.target.value)})}/></label></>:<span className="muted">Select an object.</span>}</aside></div><div className="editor-bottom"><Link className="button button-ghost" to="/games/1/play">{t.play}</Link><span>{scene.length} objects · touch/mouse editing · saved locally</span></div></main>}
+
+function meshFor(o){
+ const material=new THREE.MeshStandardMaterial({color:o.type==="light"?0xffd54a:o.type==="spawn"?0x6aa7ff:o.type==="camera"?0xa78bfa:o.type==="sound"?0xff62b5:0x71809a,roughness:.62,metalness:.18});
+ let geometry;
+ if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
+ else if(o.type==="light") geometry=new THREE.SphereGeometry(.42,24,16);
+ else if(o.type==="spawn") geometry=new THREE.ConeGeometry(.55,1.2,4);
+ else if(o.type==="camera") geometry=new THREE.BoxGeometry(1.1,.7,1.5);
+ else if(o.type==="sound") geometry=new THREE.TorusGeometry(.55,.13,12,32);
+ else if(o.type==="text") geometry=new THREE.PlaneGeometry(1.8,1);
+ else geometry=new THREE.BoxGeometry(1,1,1);
+ const mesh=new THREE.Mesh(geometry,material);
+ mesh.position.set(o.x,o.y,o.z);
+ mesh.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));
+ mesh.scale.setScalar(o.s);
+ mesh.userData.objectId=o.id;
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ return mesh;
+}
+
+function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
+ const hostRef=useRef(null);
+ const selectedRef=useRef(selected);
+ const toolRef=useRef(tool);
+ const sceneRef=useRef(scene);
+ useEffect(()=>{selectedRef.current=selected},[selected]);
+ useEffect(()=>{toolRef.current=tool},[tool]);
+ useEffect(()=>{sceneRef.current=scene},[scene]);
+ useEffect(()=>{
+   const host=hostRef.current;
+   if(!host)return;
+   const scene3=new THREE.Scene();
+   scene3.background=new THREE.Color(0x080b11);
+   const camera=new THREE.PerspectiveCamera(55,1,.1,1000);
+   camera.position.set(7,6,9);
+   const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+   renderer.shadowMap.enabled=true;
+   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+   host.replaceChildren(renderer.domElement);
+   renderer.domElement.style.width="100%";
+   renderer.domElement.style.height="100%";
+   renderer.domElement.style.display="block";
+   renderer.domElement.style.touchAction="none";
+   const orbit=new OrbitControls(camera,renderer.domElement);
+   orbit.enableDamping=true;
+   orbit.dampingFactor=.08;
+   orbit.target.set(0,0,0);
+   orbit.minDistance=2;
+   orbit.maxDistance=40;
+   const transform=new TransformControls(camera,renderer.domElement);
+   transform.setSize(1.05);
+   scene3.add(transform.getHelper());
+   const ambient=new THREE.HemisphereLight(0xcfe4ff,0x182030,1.8);
+   scene3.add(ambient);
+   const sun=new THREE.DirectionalLight(0xffffff,2.2);
+   sun.position.set(5,9,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene3.add(sun);
+   const gridHelper=new THREE.GridHelper(24,24,0x445066,0x202838);
+   gridHelper.visible=grid;scene3.add(gridHelper);
+   const axes=new THREE.AxesHelper(3.5);scene3.add(axes);
+   const ground=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshStandardMaterial({color:0x0e141d,roughness:1,metalness:0}));
+   ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene3.add(ground);
+   const objects=[];
+   sceneRef.current.forEach(o=>{const m=meshFor(o);scene3.add(m);objects.push(m)});
+   const raycaster=new THREE.Raycaster();
+   const pointer=new THREE.Vector2();
+   const pick=(e)=>{
+     if(transform.dragging)return;
+     const rect=renderer.domElement.getBoundingClientRect();
+     pointer.x=((e.clientX-rect.left)/rect.width)*2-1;
+     pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+     raycaster.setFromCamera(pointer,camera);
+     const hit=raycaster.intersectObjects(objects,false)[0];
+     if(hit?.object?.userData?.objectId!=null){setSelected(hit.object.userData.objectId);transform.attach(hit.object)}
+   };
+   renderer.domElement.addEventListener("pointerdown",pick);
+   const sync=()=>{
+     const id=transform.object?.userData?.objectId;
+     if(id==null)return;
+     const m=transform.object;
+     upd(id,{x:Number(m.position.x.toFixed(3)),y:Number(m.position.y.toFixed(3)),z:Number(m.position.z.toFixed(3)),rx:Number(THREE.MathUtils.radToDeg(m.rotation.x).toFixed(2)),ry:Number(THREE.MathUtils.radToDeg(m.rotation.y).toFixed(2)),rz:Number(THREE.MathUtils.radToDeg(m.rotation.z).toFixed(2)),s:Number(m.scale.x.toFixed(3))});
+   };
+   transform.addEventListener("objectChange",sync);
+   transform.addEventListener("dragging-changed",e=>{orbit.enabled=!e.value});
+   const resize=()=>{
+     const w=Math.max(host.clientWidth,320),h=Math.max(host.clientHeight,460);
+     renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+   };
+   const ro=new ResizeObserver(resize);ro.observe(host);resize();
+   let raf;
+   const animate=()=>{raf=requestAnimationFrame(animate);orbit.update();renderer.render(scene3,camera)};
+   animate();
+   return()=>{cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener("pointerdown",pick);transform.removeEventListener("objectChange",sync);transform.dispose();orbit.dispose();renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+ },[scene.length]);
+ useEffect(()=>{
+   const canvas=hostRef.current?.querySelector("canvas");
+   if(!canvas)return;
+   canvas.style.touchAction="none";
+ },[]);
+ return <div ref={hostRef} className="three-editor-viewport"/>;
+}
+
+function Editor(){
+ const[,t]=useLang();
+ const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));
+ const[selected,setSelected]=useState(1);
+ const[tool,setTool]=useState("select");
+ const[saved,setSaved]=useState(false);
+ const[grid,setGrid]=useState(true);
+ const obj=scene.find(o=>o.id===selected);
+ const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
+ const add=type=>{const id=Date.now();setScene(s=>[...s,{id,type,name:type+" "+(s.length+1),x:0,y:.5,z:0,rx:0,ry:0,rz:0,s:1}]);setSelected(id)};
+ const saveScene=()=>{save("eskadin-scene",scene);setSaved(true);setTimeout(()=>setSaved(false),1000)};
+ const del=()=>{setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
+ const dup=()=>obj&&setScene(s=>[...s,{...obj,id:Date.now(),name:obj.name+" copy",x:obj.x+.5,z:obj.z+.5}]);
+ return <main className="page editor-page"><div className="page-head"><div><div className="eyebrow">ESKÅDIN CREATOR · WEBGL 3D</div><h1 className="page-title">{t.create}</h1><p>editor 3D real: cámara orbital, selección, gizmos de mover/rotar/escalar, objetos, luces y edición táctil.</p></div><div className="actions"><button className="button button-ghost" onClick={saveScene}>{saved?"✓ "+t.save:t.save}</button><Link className="button button-primary" to="/publish">{t.publish}</Link></div></div>
+ <div className="editor-toolbar"><button className={tool==="select"?"active":""} onClick={()=>setTool("select")}>↖ Select</button><button className={tool==="move"?"active":""} onClick={()=>setTool("move")}>✥ Move</button><button className={tool==="rotate"?"active":""} onClick={()=>setTool("rotate")}>↻ Rotate</button><button className={tool==="scale"?"active":""} onClick={()=>setTool("scale")}>⤢ Scale</button><span className="tool-spacer"/><button onClick={()=>setGrid(!grid)}>{grid?"▦ Grid":"□ Grid"}</button><button onClick={dup}>＋ Duplicate</button><button onClick={del}>⌫ Delete</button><button onClick={()=>setScene(sceneSeed)}>↺ Reset</button></div>
+ <div className="editor-layout"><aside className="editor-side"><b>{t.objects}</b>{["wall","cube","light","sound","spawn","camera","text"].map(type=><button key={type} onClick={()=>add(type)}>＋ {type}</button>)}<div className="object-list">{scene.map(o=><button className={o.id===selected?"selected":""} onClick={()=>setSelected(o.id)} key={o.id}>{o.name}</button>)}</div></aside>
+ <div className="editor-canvas real3d"><div className="viewport-hud"><span>WEBGL VIEWPORT</span><span>one finger = orbit · wheel = zoom · gizmo = transform</span></div><ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd}/></div>
+ <aside className="properties"><b>{t.properties}</b>{obj?<><label>Name<input value={obj.name} onChange={e=>upd(obj.id,{name:e.target.value})}/></label><div className="xyz"><label>X<input type="number" step=".1" value={obj.x} onChange={e=>upd(obj.id,{x:Number(e.target.value)})}/></label><label>Y<input type="number" step=".1" value={obj.y} onChange={e=>upd(obj.id,{y:Number(e.target.value)})}/></label><label>Z<input type="number" step=".1" value={obj.z} onChange={e=>upd(obj.id,{z:Number(e.target.value)})}/></label></div><div className="xyz"><label>RX<input type="number" value={obj.rx} onChange={e=>upd(obj.id,{rx:Number(e.target.value)})}/></label><label>RY<input type="number" value={obj.ry} onChange={e=>upd(obj.id,{ry:Number(e.target.value)})}/></label><label>RZ<input type="number" value={obj.rz} onChange={e=>upd(obj.id,{rz:Number(e.target.value})}/></label></div><label>Scale<input type="number" step=".1" min=".1" value={obj.s} onChange={e=>upd(obj.id,{s:Number(e.target.value)})}/></label></>:<span className="muted">Select an object.</span>}</aside></div><div className="editor-bottom"><span>{scene.length} objects · WebGL · touch/mouse · saved locally</span><Link className="button button-ghost" to="/publish">{t.publish}</Link></div></main>}
 function Developer(){const[,t]=useLang();return <main className="page"><div className="eyebrow">{t.developer}</div><h1 className="page-title">Your studio.</h1><div className="dashboard-grid"><Link to="/editor" className="dash"><b>🧱 {t.create}</b><span>Build and preview.</span></Link><Link to="/projects" className="dash"><b>🗂 {t.projects}</b><span>Manage projects.</span></Link><Link to="/publish" className="dash"><b>📤 {t.publish}</b><span>Release a game.</span></Link><Link to="/statistics" className="dash"><b>📊 Statistics</b><span>Visits, likes and sessions.</span></Link></div></main>}
 
-function Publish(){const[,t]=useLang();const[games,setGames]=useGames();const{developer}=useUser();const nav=useNavigate();const[name,setName]=useState("My new game");const[desc,setDesc]=useState("A new Eskådin Stüdis experience.");const[done,setDone]=useState(false);const blocked=reserved.some(x=>name.toLowerCase().replace(/[^a-z0-9 ]/g,"").includes(x.replace(/[^a-z0-9 ]/g,"")));const go=()=>{if(blocked)return;setGames(g=>[...g,{id:Date.now(),title:name,genre:"3D Experience",tag:"New",color:"violet",players:0,likes:0,author:developer?.name||"Eskådin Studio",description:desc}]);setDone(true)};if(!developer)return <main className="page narrow"><div className="form-card"><div className="eyebrow">DEVELOPER</div><h1 className="page-title">Cuenta de desarrollador requerida</h1><p className="muted">Tu cuenta personal sirve para jugar. Para publicar necesitas una cuenta de desarrollador separada.</p><button className="button button-primary" onClick={()=>nav("/developer/register")}>Crear cuenta de desarrollador</button></div></main>;return <main className="page narrow"><div className="eyebrow">{t.publish}</div><h1 className="page-title">{done?t.published:t.publish}</h1>{done?<div className="success-card"><b>✓ {t.publish}</b><p>Your game is now in the local catalog.</p><Link className="button button-primary" to="/games">{t.explore}</Link></div>:<div className="form-card"><label>{t.name}<input value={name} onChange={e=>setName(e.target.value)}/></label>{blocked&&<p className="error">Reserved developer or game name.</p>}<label>{t.description}<textarea value={desc} onChange={e=>setDesc(e.target.value)}/></label><label>Visibility<select><option>Public</option><option>Private</option></select></label><button className="button button-primary" disabled={blocked} onClick={go}>{t.publish} · 0€</button><p className="muted">Real-money payments are blocked. F¢ cannot be purchased or withdrawn.</p></div>}</main>}
+function Publish(){const[,t]=useLang();const[games,setGames]=useGames();const{developer}=useUser();const nav=useNavigate();const[name,setName]=useState("My new game");const[desc,setDesc]=useState("A new Eskådin Stüdis experience.");const[done,setDone]=useState(false);const blocked=blockedIdentity(name);const go=()=>{if(blocked)return;setGames(g=>[...g,{id:Date.now(),title:name,genre:"3D Experience",tag:"New",color:"violet",players:0,likes:0,author:developer?.name||"Eskådin Studio",description:desc}]);setDone(true)};if(!developer)return <main className="page narrow"><div className="form-card"><div className="eyebrow">DEVELOPER</div><h1 className="page-title">Cuenta de desarrollador requerida</h1><p className="muted">Tu cuenta personal sirve para jugar. Para publicar necesitas una cuenta de desarrollador separada.</p><button className="button button-primary" onClick={()=>nav("/developer/register")}>Crear cuenta de desarrollador</button></div></main>;return <main className="page narrow"><div className="eyebrow">{t.publish}</div><h1 className="page-title">{done?t.published:t.publish}</h1>{done?<div className="success-card"><b>✓ {t.publish}</b><p>Your game is now in the local catalog.</p><Link className="button button-primary" to="/games">{t.explore}</Link></div>:<div className="form-card"><label>{t.name}<input value={name} onChange={e=>setName(e.target.value)}/></label>{blocked&&<p className="error">Reserved developer or game name.</p>}<label>{t.description}<textarea value={desc} onChange={e=>setDesc(e.target.value)}/></label><label>Visibility<select><option>Public</option><option>Private</option></select></label><button className="button button-primary" disabled={blocked} onClick={go}>{t.publish} · 0€</button><p className="muted">Real-money payments are blocked. F¢ cannot be purchased or withdrawn.</p></div>}</main>}
 
 function Missions(){const[,t]=useLang();const[balance,setBalance]=useState(()=>Number(localStorage.getItem("eskadin-fc")||0));const[claimed,setClaimed]=useState(()=>read("eskadin-missions",{}));const ms=[["play","Play a new experience",8],["explore","Explore a creator",12],["like","Like an experience",5]];const claim=(id,n)=>{if(claimed[id])return;const next=balance+n;setBalance(next);localStorage.setItem("eskadin-fc",String(next));const c={...claimed,[id]:true};setClaimed(c);save("eskadin-missions",c)};return <main className="page"><div className="eyebrow">{t.missions}</div><h1 className="page-title">F¢ missions</h1><div className="wallet-banner"><b>{balance} F¢</b><span>Earn platform currency by playing.</span><Link to="/wallet">{t.wallet}</Link></div><div className="mission-grid">{ms.map(([id,title,n])=><div className="mission-card" key={id}><span>MISSION</span><h3>{title}</h3><strong>+{n} F¢</strong><button className="button button-primary" disabled={!!claimed[id]} onClick={()=>claim(id,n)}>{claimed[id]?"✓ Claimed":"Claim"}</button></div>)}</div></main>}
 
