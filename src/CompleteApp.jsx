@@ -88,8 +88,8 @@ function GameRuntime({game,onExit}){
     box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box);
    }
   }
-  const playerRadius=.35;
-  const playerHeight=1.6;
+  const playerRadius=.38;
+  const playerHeight=1.8;
   const colliders=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
   const colliderBoxes=colliders.map(m=>{const box=new THREE.Box3().setFromObject(m);return {mesh:m,box}});
   let floorY=0;
@@ -102,7 +102,7 @@ function GameRuntime({game,onExit}){
   const fallbackFloor=source.length?0:0;
 
   const player=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(playerRadius,playerHeight-2*playerRadius,8,16),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(playerRadius,playerHeight-2*playerRadius,10,18),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
   body.position.y=playerHeight*.5;body.castShadow=true;player.add(body);
   player.position.set(0,floorY,4);scene3.add(player);
 
@@ -237,7 +237,7 @@ function GameRuntime({game,onExit}){
    if(grounded){player.position.y=supportY;velocity.y=0}
    if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7.2;jumpRef.current=false}
    player.rotation.y=yaw;
-   camera.position.set(player.position.x,player.position.y+1.25,player.position.z);
+   camera.position.set(player.position.x,player.position.y+1.55,player.position.z);
    camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
    renderer.render(scene3,camera);
   };
