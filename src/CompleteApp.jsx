@@ -412,7 +412,6 @@ function Editor(){useStudioFullscreenLock();
    </aside>
    <div className="editor-main" onClick={()=>sidebarOpen&&setSidebarOpen(false)}>
     <div className="editor-workspace">
-     </aside>
      <section className="editor-center">
       <div className="viewport-project"><strong>Untitled project</strong><span>● {t.local} · {scene.length} {t.objectsCount}</span></div>
       <div className="viewport-hud"><span>{t.viewport}</span><span>{t.orbit}</span></div>
