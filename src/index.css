@@ -293,3 +293,31 @@ body,*{overscroll-behavior-x:none}
 .scene-object3d{position:absolute;width:58px;height:58px;border:1px solid rgba(255,255,255,.16);background:rgba(30,37,50,.9);color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:grab;touch-action:none;z-index:2}.scene-object3d:active{cursor:grabbing}.scene-object3d.selected{outline:2px solid var(--accent);box-shadow:0 0 0 7px rgba(184,255,90,.09),0 15px 35px rgba(0,0,0,.4)}.scene-object3d small{position:absolute;top:62px;white-space:nowrap;font:600 9px ui-monospace,monospace;color:#aab3c1}.scene-object3d.wall{border-radius:5px;width:72px;height:30px}.scene-object3d.light{background:rgba(255,214,78,.18);color:#ffe15a}.scene-object3d.spawn{color:#70a8ff}.scene-object3d.camera{color:#a98cff}.scene-object3d.sound{color:#ff76b5}.xyz{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.xyz label{font-size:9px}.xyz input{min-width:0}
 @media(max-width:900px){.editor-layout{grid-template-columns:150px minmax(0,1fr);}.properties{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.properties>b{grid-column:1/-1}.property-actions{grid-column:1/-1}}
 @media(max-width:620px){.editor-layout{grid-template-columns:1fr}.editor-side{max-height:180px;overflow:auto}.editor-canvas.real3d{min-height:460px}.properties{grid-template-columns:1fr 1fr}.xyz{grid-template-columns:1fr 1fr 1fr}}
+
+/* studio fullscreen / normal page scrolling */
+.editor-page{
+  width:100vw;
+  max-width:none;
+  margin:0;
+  padding:22px 24px;
+  min-height:calc(100vh - 76px);
+  touch-action:none;
+}
+.editor-page .editor-layout{
+  height:calc(100vh - 235px);
+  min-height:560px;
+}
+.editor-page .editor-canvas.real3d{
+  min-height:0;
+  height:100%;
+}
+.page:not(.editor-page), .hero, .section{
+  touch-action:pan-y;
+}
+.games-grid,.games-grid *,.page{
+  touch-action:pan-y;
+}
+.mission-done{
+  border-color:rgba(184,255,90,.4);
+  background:linear-gradient(180deg,rgba(184,255,90,.08),rgba(17,20,28,.95));
+}
