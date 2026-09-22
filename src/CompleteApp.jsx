@@ -587,7 +587,7 @@ const groups=objectCatalog[lang]||objectCatalog.en;
    <aside className="studio-sidebar" aria-hidden={!sidebarOpen}>
     <div className="studio-sidebar-head"><div className="studio-sidebar-brand">Eskådin<br/><span>Stüdis</span></div><strong className="studio-project-side">{t.newGame}</strong></div><div className="studio-sidebar-actions studio-nav-actions"><Link title={t.back} to="/">⌂ {t.back}</Link><Link title={t.explore} to="/games">▶ {t.explore}</Link></div><div className="studio-sidebar-section">{t.language}</div><select className="studio-language" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
     <div className="studio-sidebar-actions">
-     <button title={t.add} onClick={()=>setPanel("create")}>＋ {t.objects}</button><button title={t.hierarchy} onClick={()=>setPanel("scene")}>☷ {t.hierarchy}</button><button title={t.assets} onClick={()=>setPanel("create")}>▣ {t.objects}</button><button title={t.scene} onClick={()=>setPanel("scene")}>◉ {t.scene}</button>
+     <button title={t.add} onClick={()=>setPanel("create")}>＋ {t.objects}</button><button title={t.hierarchy} onClick={()=>setPanel("scene")}>☷ {t.hierarchy}</button><Link title="Object Studio" to="/object-studio">◈ Object Studio</Link><button title={t.scene} onClick={()=>setPanel("scene")}>◉ {t.scene}</button>
     </div>
     <div className="studio-sidebar-section">{t.selectTool}</div>
     <div className="studio-tool-grid">
@@ -663,6 +663,170 @@ function updateAvatarItem(user,item){
  next[item.kind]=item.value;
  return next;
 }
+
+const AVATAR_ASSET_TYPES={
+ rigid:[
+  ["Hair","Cabello"],
+  ["Hat","Sombrero"],
+  ["Face","Cara"],
+  ["Neck","Cuello"],
+  ["Shoulder","Hombro"],
+  ["Front","Frontal"],
+  ["Back","Espalda"],
+  ["Waist","Cintura"]
+ ],
+ layered:[
+  ["TShirt","Camiseta 3D"],
+  ["Shirt","Camisa"],
+  ["Sweater","Jersey"],
+  ["Pants","Pantalón 3D"],
+  ["DressSkirt","Vestido / Falda"],
+  ["Shorts","Shorts"],
+  ["Shoes","Zapatos"]
+ ],
+ classic:[
+  ["ClassicTShirt","Camiseta clásica"],
+  ["ClassicShirt","Camisa clásica"],
+  ["ClassicPants","Pantalón clásico"]
+ ]
+};
+const AVATAR_ATTACHMENT_NAMES={
+ Hair:"HairAttachment",Hat:"HatAttachment",Face:"FaceFrontAttachment",Neck:"NeckAttachment",
+ Shoulder:"RightShoulderAttachment",Front:"BodyFrontAttachment",Back:"BodyBackAttachment",Waist:"WaistCenterAttachment"
+};
+const createdAvatarItems=()=>read("eskadin-created-avatar-items",[]);
+const saveCreatedAvatarItems=items=>save("eskadin-created-avatar-items",items);
+const avatarCustomOwned=()=>read("eskadin-owned-created-avatar-items",[]);
+const saveAvatarCustomOwned=ids=>save("eskadin-owned-created-avatar-items",ids);
+const avatarItemLabel=item=>item?.assetType==="rigid"?"Accesorio rígido":item?.assetType==="layered"?"Ropa en capas":"Ropa clásica";
+
+function ObjectStudio(){
+ const[,t]=useLang();
+ const{developer}=useUser();
+ const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));
+ const[selected,setSelected]=useState(()=>read("eskadin-object-studio-selection",scene[0]?.id||null));
+ const[tool,setTool]=useState("select");
+ const[grid,setGrid]=useState(true);
+ const[snap,setSnap]=useState(false);
+ const[wireframe,setWireframe]=useState(false);
+ const[showAxes,setShowAxes]=useState(true);
+ const[assetType,setAssetType]=useState("rigid");
+ const[assetSubtype,setAssetSubtype]=useState("Hat");
+ const[attachment,setAttachment]=useState("Hat");
+ const[layerOrder,setLayerOrder]=useState(1);
+ const[name,setName]=useState("Mi objeto");
+ const[description,setDescription]=useState("");
+ const[price,setPrice]=useState(0);
+ const[created,setCreated]=useState(false);
+ const source=scene.find(o=>o.id===selected)||null;
+ const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
+ const add=type=>{
+  const id=Date.now();
+  const defaults={cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0]};
+  const p=defaults[type]||[0,.5,0];
+  const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};
+  setScene(s=>[...s,item]);setSelected(id);setName(item.name);
+ };
+ const convert=()=>{
+  if(!source)return;
+  const now=Date.now();
+  const item={
+   id:"asset-"+now,
+   name:name.trim()||source.name||"Objeto de Eskådin",
+   description:description.trim(),
+   creator:developer?.name||"Eskådin Creator",
+   assetType,
+   subtype:assetSubtype,
+   attachment:assetType==="rigid"?attachment:null,
+   attachmentName:assetType==="rigid"?AVATAR_ATTACHMENT_NAMES[attachment]||"HatAttachment":null,
+   layerOrder:assetType==="layered"?Math.max(1,Math.min(10,Number(layerOrder)||1)):null,
+   price:Math.max(0,Math.floor(Number(price)||0)),
+   source:{type:source.type,color:source.color,roughness:source.roughness,metalness:source.metalness,s:source.s},
+   status:"published",
+   createdAt:new Date(now).toISOString()
+  };
+  const next=[item,...createdAvatarItems()];
+  saveCreatedAvatarItems(next);
+  const owned=avatarCustomOwned();
+  if(!owned.includes(item.id))saveAvatarCustomOwned([...owned,item.id]);
+  setCreated(true);
+  setTimeout(()=>setCreated(false),1800);
+ };
+ useEffect(()=>{save("eskadin-scene",scene);save("eskadin-object-studio-selection",selected)},[scene,selected]);
+ useEffect(()=>{
+  const list=AVATAR_ASSET_TYPES[assetType]||[];
+  if(list.length&&!list.some(([v])=>v===assetSubtype))setAssetSubtype(list[0][0]);
+ },[assetType]);
+ useEffect(()=>{
+  if(assetType==="rigid"&&!AVATAR_ASSET_TYPES.rigid.some(([v])=>v===attachment))setAttachment("Hat");
+ },[assetType,attachment]);
+ return <main className="object-studio-page">
+  <header className="object-studio-header">
+   <div><span className="roblox-kicker">OBJECT STUDIO</span><h1>Crea objetos para tu avatar</h1><p>Construye el modelo en el editor, ajústalo y conviértelo en un artículo del Mercado.</p></div>
+   <div className="object-studio-header-actions"><Link className="roblox-pill" to="/editor">Volver al Studio</Link><Link className="roblox-pill" to="/marketplace">Mercado</Link></div>
+  </header>
+  <div className="object-studio-layout">
+   <aside className="object-studio-panel">
+    <div className="object-studio-panel-title">1 · Modelo</div>
+    <div className="object-studio-create-grid">
+     {["cube","sphere","cylinder","cone","torus","capsule"].map(type=><button key={type} onClick={()=>add(type)}>＋ {type}</button>)}
+    </div>
+    <div className="object-studio-panel-title">Objetos de la escena</div>
+    <div className="object-studio-scene-list">
+     {scene.map(o=><button key={o.id} className={selected===o.id?"chosen":""} onClick={()=>{setSelected(o.id);setName(o.name)}}>{o.name}<small>{o.type}</small></button>)}
+    </div>
+   </aside>
+   <section className="object-studio-preview">
+    <div className="object-studio-preview-bar"><b>PREVISUALIZACIÓN 3D</b><span>{source?source.name:"Selecciona un objeto"}</span></div>
+    <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
+    <div className="object-studio-tools">
+     <button className={tool==="select"?"chosen":""} onClick={()=>setTool("select")}>↖ Seleccionar</button>
+     <button className={tool==="move"?"chosen":""} onClick={()=>setTool("move")}>✥ Mover</button>
+     <button className={tool==="rotate"?"chosen":""} onClick={()=>setTool("rotate")}>↻ Rotar</button>
+     <button className={tool==="scale"?"chosen":""} onClick={()=>setTool("scale")}>⤢ Escalar</button>
+     <button className={grid?"chosen":""} onClick={()=>setGrid(v=>!v)}>▦ Grid</button>
+     <button className={snap?"chosen":""} onClick={()=>setSnap(v=>!v)}>⌗ Snap</button>
+     <button className={wireframe?"chosen":""} onClick={()=>setWireframe(v=>!v)}>◇ Wire</button>
+     <button className={showAxes?"chosen":""} onClick={()=>setShowAxes(v=>!v)}>XYZ</button>
+    </div>
+   </section>
+   <aside className="object-studio-panel object-studio-inspector">
+    <div className="object-studio-panel-title">2 · Tipo de artículo</div>
+    <div className="object-studio-type-grid">
+     <button className={assetType==="rigid"?"chosen":""} onClick={()=>setAssetType("rigid")}>🧢 Accesorio rígido</button>
+     <button className={assetType==="layered"?"chosen":""} onClick={()=>setAssetType("layered")}>👕 Ropa en capas</button>
+     <button className={assetType==="classic"?"chosen":""} onClick={()=>setAssetType("classic")}>🖼️ Ropa clásica</button>
+    </div>
+    <label>Nombre<input value={name} onChange={e=>setName(e.target.value)} placeholder="Nombre del artículo"/></label>
+    <label>Descripción<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Describe el artículo…"/></label>
+    <label>Categoría
+     <select value={assetSubtype} onChange={e=>setAssetSubtype(e.target.value)}>
+      {(AVATAR_ASSET_TYPES[assetType]||[]).map(([v,l])=><option key={v} value={v}>{l}</option>)}
+     </select>
+    </label>
+    {assetType==="rigid"&&<label>Punto de fijación
+     <select value={attachment} onChange={e=>setAttachment(e.target.value)}>
+      {AVATAR_ASSET_TYPES.rigid.map(([v,l])=><option key={v} value={v}>{l} · {AVATAR_ATTACHMENT_NAMES[v]}</option>)}
+     </select>
+    </label>}
+    {assetType==="layered"&&<label>Capa de ropa
+     <input type="number" min="1" max="10" value={layerOrder} onChange={e=>setLayerOrder(e.target.value)}/>
+    </label>}
+    <label>Precio F¢<input type="number" min="0" step="1" value={price} onChange={e=>setPrice(e.target.value)}/></label>
+    <div className="object-studio-checks">
+     <span>✓ Modelo seleccionado</span>
+     <span>✓ Metadatos de artículo</span>
+     {assetType==="rigid"&&<span>✓ Attachment: {AVATAR_ATTACHMENT_NAMES[attachment]}</span>}
+     {assetType==="layered"&&<span>✓ WrapLayer + cage (simulado por Eskådin)</span>}
+     {assetType==="classic"&&<span>✓ Plantilla clásica asociada al objeto</span>}
+    </div>
+    <button className="button button-primary object-studio-generate" disabled={!source} onClick={convert}>{created?"✓ Publicado en Mercado":"Convertir y publicar en Mercado"}</button>
+    <p className="object-studio-note">Los artículos creados aquí se guardan en tu Mercado local y pasan a estar disponibles para tu inventario en este dispositivo.</p>
+   </aside>
+  </div>
+ </main>
+}
+
 function AvatarEditor(){
  const[,t]=useLang();const{user,login}=useUser();const current=user||{name:"Eskådin Player",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
  const[form,setForm]=useState(current);const saveProfile=()=>{login(form);save("eskadin-avatar",form)};const set=(k,v)=>setForm(x=>({...x,[k]:v}));
@@ -682,15 +846,37 @@ function AvatarEditor(){
  </main>
 }
 function Marketplace(){
- const[,t]=useLang();const{user,login}=useUser();const[query,setQuery]=useState("");const[category,setCategory]=useState("Todos");const[owned,setOwned]=useState(()=>avatarOwned());
- const cats=["Todos","Cuerpo","Cabello","Cara","Sombreros","Camisas","Pantalones"];
- const items=AVATAR_ITEMS.filter(i=>(category==="Todos"||i.category===category)&&i.name.toLowerCase().includes(query.toLowerCase()));
- const buy=e=>{const cost=e.price||0;const balance=Number(localStorage.getItem("eskadin-fc")||0);if(cost>balance)return;localStorage.setItem("eskadin-fc",String(balance-cost));saveAvatarItem(e.id);setOwned(avatarOwned())};
- const equip=e=>{login(updateAvatarItem(user||{name:"Eskådin Player"},e));saveAvatarItem(e.id)};
+ const[,t]=useLang();const{user,login}=useUser();const[query,setQuery]=useState("");const[category,setCategory]=useState("Todos");
+ const[owned,setOwned]=useState(()=>[...avatarOwned(),...avatarCustomOwned()]);
+ const[balance,setBalance]=useState(()=>Number(localStorage.getItem("eskadin-fc")||0));
+ const custom=createdAvatarItems();
+ const customCategories=["Accesorios","Ropa en capas","Ropa clásica"];
+ const cats=["Todos","Cuerpo","Cabello","Cara","Sombreros","Camisas","Pantalones",...customCategories];
+ const builtins=AVATAR_ITEMS.filter(i=>(category==="Todos"||i.category===category)&&i.name.toLowerCase().includes(query.toLowerCase()));
+ const customFiltered=custom.filter(i=>{
+  const cat=avatarItemLabel(i);
+  return (category==="Todos"||category===cat||(category==="Accesorios"&&i.assetType==="rigid")||(category==="Ropa en capas"&&i.assetType==="layered")||(category==="Ropa clásica"&&i.assetType==="classic"))&&
+   i.name.toLowerCase().includes(query.toLowerCase());
+ });
+ const buyBuiltin=e=>{const cost=e.price||0;if(cost>balance)return;const next=balance-cost;localStorage.setItem("eskadin-fc",String(next));setBalance(next);saveAvatarItem(e.id);setOwned(x=>x.includes(e.id)?x:[...x,e.id])};
+ const equipBuiltin=e=>{login(updateAvatarItem(user||{name:"Eskådin Player"},e));saveAvatarItem(e.id);setOwned(x=>x.includes(e.id)?x:[...x,e.id])};
+ const buyCustom=e=>{const cost=e.price||0;if(cost>balance)return;const next=balance-cost;localStorage.setItem("eskadin-fc",String(next));setBalance(next);const ids=avatarCustomOwned();if(!ids.includes(e.id))saveAvatarCustomOwned([...ids,e.id]);setOwned(x=>x.includes(e.id)?x:[...x,e.id])};
+ const equipCustom=e=>{
+  const current=user||{name:"Eskådin Player"};
+  const ids=Array.isArray(current.avatarItems)?current.avatarItems.filter(id=>id!==e.id):[];
+  login({...current,avatarItems:[...ids,e.id]});
+  const ownedIds=avatarCustomOwned();if(!ownedIds.includes(e.id))saveAvatarCustomOwned([...ownedIds,e.id]);
+ };
+ const icon=i=>i.assetType==="rigid"?"◈":i.assetType==="layered"?"▣":"▤";
  return <main className="roblox-page marketplace-page">
-  <div className="roblox-titlebar"><div><span className="roblox-kicker">MERCADO</span><h1>Mercado de objetos</h1><p>cuerpos, ropa y accesorios para tu avatar.</p></div><div className="market-balance">F¢ {Number(localStorage.getItem("eskadin-fc")||0)}</div></div>
+  <div className="roblox-titlebar"><div><span className="roblox-kicker">MERCADO</span><h1>Mercado de objetos</h1><p>Los objetos creados en Object Studio aparecen aquí automáticamente.</p></div><div className="market-balance">F¢ {balance}</div></div>
   <div className="market-toolbar"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar objetos…"/><div className="market-categories">{cats.map(c=><button key={c} className={category===c?"chosen":""} onClick={()=>setCategory(c)}>{c}</button>)}</div></div>
-  <div className="market-grid">{items.map(item=>{const isOwned=owned.includes(item.id);return <article className="market-item" key={item.id}><div className="market-item-preview"><span>{item.glyph}</span></div><div className="market-item-info"><small>{item.category}</small><h3>{item.name}</h3><b>{isOwned?"Propiedad":item.price===0?"Gratis":"F¢ "+item.price}</b><div className="market-item-actions">{isOwned?<button className="button button-primary small" onClick={()=>equip(item)}>Equipar</button>:<button className="button button-ghost small" disabled={item.price>Number(localStorage.getItem("eskadin-fc")||0)} onClick={()=>buy(item)}>{item.price===0?"Obtener":"Comprar · F¢ "+item.price}</button>}</div></div></article>})}</div>
+  {custom.length>0&&<div className="market-creator-link"><span>✦ {custom.length} artículo{custom.length===1?"":"s"} creados por la comunidad</span><Link to="/object-studio" className="roblox-pill">Crear otro</Link></div>}
+  <div className="market-grid">
+   {builtins.map(item=>{const isOwned=owned.includes(item.id);return <article className="market-item" key={item.id}><div className="market-item-preview"><span>{item.glyph}</span></div><div className="market-item-info"><small>{item.category}</small><h3>{item.name}</h3><b>{isOwned?"Propiedad":item.price===0?"Gratis":"F¢ "+item.price}</b><div className="market-item-actions">{isOwned?<button className="button button-primary small" onClick={()=>equipBuiltin(item)}>Equipar</button>:<button className="button button-ghost small" disabled={item.price>balance} onClick={()=>buyBuiltin(item)}>{item.price===0?"Obtener":"Comprar · F¢ "+item.price}</button>}</div></div></article>})}
+   {customFiltered.map(item=>{const isOwned=owned.includes(item.id);return <article className="market-item market-item-created" key={item.id}><div className="market-item-preview"><span>{icon(item)}</span><small>3D</small></div><div className="market-item-info"><small>{avatarItemLabel(item)} · {item.subtype}</small><h3>{item.name}</h3><p>{item.description||"Objeto creado en Object Studio."}</p><b>{isOwned?"Propiedad":item.price===0?"Gratis":"F¢ "+item.price}</b><div className="market-item-actions">{isOwned?<button className="button button-primary small" onClick={()=>equipCustom(item)}>Equipar</button>:<button className="button button-ghost small" disabled={item.price>balance} onClick={()=>buyCustom(item)}>{item.price===0?"Obtener":"Comprar · F¢ "+item.price}</button>}</div></div></article>})}
+  </div>
+  {!builtins.length&&!customFiltered.length&&<div className="form-card"><h2>No hay objetos con ese filtro.</h2><Link className="button button-primary" to="/object-studio">Abrir Object Studio</Link></div>}
  </main>
 }
 function Account(){const[,t]=useLang();const{user,logout}=useUser();const current=user||{name:"Eskådin Player"};return <main className="roblox-page account-page"><div className="profile-hero"><div className="profile-avatar"><Avatar user={current} size="xl"/></div><div><span className="roblox-kicker">{t.profile}</span><h1>{current.name}</h1><p>@{normalizeIdentity(current.name)}</p><div className="profile-actions"><Link to="/editor" className="roblox-pill">Crear</Link><Link to="/avatar" className="roblox-pill">Avatar</Link></div></div></div><div className="profile-grid"><section className="roblox-card"><h2>{t.aboutMe}</h2><p>{current.bio||t.playerOf}</p><div className="profile-stats"><b>{Number(localStorage.getItem("eskadin-fc")||0)}<small>F¢</small></b><b>0<small>{t.games}</small></b><b>0<small>{t.sessions}</small></b></div></section><section className="roblox-card"><h2>{t.avatar}</h2><div className="avatar-preview-row"><Avatar user={current} size="md"/><span>{t.avatarReady}</span></div></section><section className="roblox-card"><h2>{t.accountSection}</h2><div className="account-actions"><Link className="button button-ghost" to="/wallet">{t.wallet}</Link><Link className="button button-ghost" to="/settings">{t.settings}</Link><Link className="button danger-button" to="/account/delete">{t.delete}</Link><button className="button button-ghost" onClick={logout}>{t.logout}</button></div></section></div></main>}
@@ -705,4 +891,4 @@ function DeleteAccount(){const[,t]=useLang();const{logout}=useUser();const nav=u
 
 function NotFound(){const[,t]=useLang();return <main className="page notfound"><h1>404</h1><p>{t.pageEscaped}</p><Link className="button button-primary" to="/">{t.home}</Link></main>}
 
-export default function CompleteApp(){return <LangProvider><AuthProvider><Shell><Routes><Route path="/" element={<Register/>}/><Route path="/home" element={<Home/>}/><Route path="/games" element={<Games/>}/><Route path="/marketplace" element={<Marketplace/>}/><Route path="/avatar" element={<AvatarEditor/>}/><Route path="/games/:id" element={<Game/>}/><Route path="/games/:id/play" element={<Play/>}/><Route path="/editor" element={<Editor/>}/><Route path="/developer" element={<Developer/>}/><Route path="/projects" element={<Projects/>}/><Route path="/publish" element={<Publish/>}/><Route path="/missions" element={<Missions/>}/><Route path="/wallet" element={<Wallet/>}/><Route path="/statistics" element={<Statistics/>}/><Route path="/account" element={<Account/>}/><Route path="/settings" element={<Settings/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/developer/register" element={<DeveloperRegister/>}/><Route path="/developer/account" element={<DeveloperAccount/>}/><Route path="/account/delete" element={<DeleteAccount/>}/><Route path="*" element={<NotFound/>}/></Routes></Shell></AuthProvider></LangProvider>}
+export default function CompleteApp(){return <LangProvider><AuthProvider><Shell><Routes><Route path="/" element={<Register/>}/><Route path="/home" element={<Home/>}/><Route path="/games" element={<Games/>}/><Route path="/marketplace" element={<Marketplace/>}/><Route path="/object-studio" element={<ObjectStudio/>}/><Route path="/avatar" element={<AvatarEditor/>}/><Route path="/games/:id" element={<Game/>}/><Route path="/games/:id/play" element={<Play/>}/><Route path="/editor" element={<Editor/>}/><Route path="/developer" element={<Developer/>}/><Route path="/projects" element={<Projects/>}/><Route path="/publish" element={<Publish/>}/><Route path="/missions" element={<Missions/>}/><Route path="/wallet" element={<Wallet/>}/><Route path="/statistics" element={<Statistics/>}/><Route path="/account" element={<Account/>}/><Route path="/settings" element={<Settings/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/developer/register" element={<DeveloperRegister/>}/><Route path="/developer/account" element={<DeveloperAccount/>}/><Route path="/account/delete" element={<DeleteAccount/>}/><Route path="*" element={<NotFound/>}/></Routes></Shell></AuthProvider></LangProvider>}
