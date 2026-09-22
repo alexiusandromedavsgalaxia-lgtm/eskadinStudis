@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import {Link,NavLink,Route,Routes,useNavigate,useParams} from "react-router-dom";
 
 const LANG={es:"ES",en:"EN",sv:"SV",de:"DE",fr:"FR"};
@@ -8,7 +8,7 @@ en:{explore:"Explore",create:"Create",developer:"Developer",account:"Account",lo
 sv:{explore:"Utforska",create:"Skapa",developer:"Utvecklare",account:"Konto",login:"Logga in",register:"Skapa konto",logout:"Logga ut",delete:"Ta bort konto",publish:"Publicera",save:"Spara",missions:"Uppdrag",wallet:"F¢",settings:"Inställningar",projects:"Projekt",play:"Spela",like:"Gilla",back:"Tillbaka",objects:"OBJEKT",properties:"EGENSKAPER",search:"Sök spel…",newGame:"Nytt spel"},
 de:{explore:"Entdecken",create:"Erstellen",developer:"Entwickler",account:"Konto",login:"Anmelden",register:"Konto erstellen",logout:"Abmelden",delete:"Konto löschen",publish:"Veröffentlichen",save:"Speichern",missions:"Missionen",wallet:"F¢",settings:"Einstellungen",projects:"Projekte",play:"Spielen",like:"Gefällt mir",back:"Zurück",objects:"OBJEKTE",properties:"EIGENSCHAFTEN",search:"Spiele suchen…",newGame:"Neues Spiel"},
 fr:{explore:"Explorer",create:"Créer",developer:"Développeur",account:"Compte",login:"Connexion",register:"Créer un compte",logout:"Déconnexion",delete:"Supprimer le compte",publish:"Publier",save:"Enregistrer",missions:"Missions",wallet:"F¢",settings:"Réglages",projects:"Projets",play:"Jouer",like:"J'aime",back:"Retour",objects:"OBJETS",properties:"PROPRIÉTÉS",search:"Rechercher des jeux…",newGame:"Nouveau jeu"}};
-const seed=[{id:1,title:"Neon District",genre:"Action · 3D",tag:"Featured",color:"violet",players:1240,likes:3820,author:"Pëston Games",description:"A neon playground built for fast exploration."},{id:2,title:"Blockline",genre:"Building",tag:"Popular",color:"lime",players:842,likes:2140,author:"Pëston Games",description:"Build compact worlds with simple pieces."},{id:3,title:"Night Shift",genre:"Horror",tag:"Trending",color:"blue",players:3400,likes:8910,author:"Mira Studio",description:"The building is never quite empty."},{id:4,title:"Worlds Apart",genre:"Adventure",tag:"New",color:"pink",players:621,likes:1702,author:"Northline",description:"Explore connected places and choose your route."}];
+const seed=[];
 const reserved=["keplerians","roblox corporation","dvloper","granny","evil nun","ice scream","mr meat","datavaseloper"];
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
