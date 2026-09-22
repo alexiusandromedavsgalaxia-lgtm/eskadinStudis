@@ -54,7 +54,8 @@ function Play(){const[,t]=useLang();const{id}=useParams();const[games]=useGames(
 const sceneSeed=[{id:1,type:"wall",name:"Wall 01",x:0,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:2,type:"cube",name:"Cube 02",x:2,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:3,type:"light",name:"Light 03",x:0,y:3,z:2,rx:0,ry:0,rz:0,s:1}];
 
 function meshFor(o){
- const material=new THREE.MeshStandardMaterial({color:o.type==="light"?0xffd54a:o.type==="spawn"?0x6aa7ff:o.type==="camera"?0xa78bfa:o.type==="sound"?0xff62b5:0x71809a,roughness:.62,metalness:.18});
+ const colors={light:0xffd54a,spawn:0x6aa7ff,camera:0xa78bfa,sound:0xff62b5,text:0xf2f4f8,wall:0x71809a,sphere:0x6fd3ff,cylinder:0x8de08b,cone:0xff9f68,torus:0xd99cff,plane:0x8f9aaa,capsule:0xff7eb6};
+ const material=new THREE.MeshStandardMaterial({color:colors[o.type]||0x71809a,roughness:.55,metalness:.2});
  let geometry;
  if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
  else if(o.type==="light") geometry=new THREE.SphereGeometry(.42,24,16);
@@ -62,6 +63,12 @@ function meshFor(o){
  else if(o.type==="camera") geometry=new THREE.BoxGeometry(1.1,.7,1.5);
  else if(o.type==="sound") geometry=new THREE.TorusGeometry(.55,.13,12,32);
  else if(o.type==="text") geometry=new THREE.PlaneGeometry(1.8,1);
+ else if(o.type==="sphere") geometry=new THREE.SphereGeometry(.75,32,20);
+ else if(o.type==="cylinder") geometry=new THREE.CylinderGeometry(.65,.65,1.5,32);
+ else if(o.type==="cone") geometry=new THREE.ConeGeometry(.7,1.5,32);
+ else if(o.type==="torus") geometry=new THREE.TorusGeometry(.65,.22,18,40);
+ else if(o.type==="plane") geometry=new THREE.PlaneGeometry(1.8,1.8);
+ else if(o.type==="capsule") geometry=new THREE.CapsuleGeometry(.45,.9,8,16);
  else geometry=new THREE.BoxGeometry(1,1,1);
  const mesh=new THREE.Mesh(geometry,material);
  mesh.position.set(o.x,o.y,o.z);
@@ -168,17 +175,45 @@ function Editor(){
  const[tool,setTool]=useState("select");
  const[saved,setSaved]=useState(false);
  const[grid,setGrid]=useState(true);
- const obj=scene.find(o=>o.id===selected);
+ const[snap,setSnap]=useState(false);
+ const[wireframe,setWireframe]=useState(false);
+ const[showAxes,setShowAxes]=useState(true);
+ const[panel,setPanel]=useState("create");
+ const[obj,setObj]=useState(null);
+ useEffect(()=>setObj(scene.find(o=>o.id===selected)||null),[scene,selected]);
+
  const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
- const add=type=>{const id=Date.now();setScene(s=>[...s,{id,type,name:type+" "+(s.length+1),x:0,y:.5,z:0,rx:0,ry:0,rz:0,s:1}]);setSelected(id)};
+ const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0],floor:[0,0,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(s.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1};setScene(s=>[...s,item]);setSelected(id)};
  const saveScene=()=>{save("eskadin-scene",scene);save("eskadin-project",{name:"Untitled project",scene,updatedAt:new Date().toISOString()});setSaved(true);setTimeout(()=>setSaved(false),1000)};
- const del=()=>{setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
- const dup=()=>obj&&setScene(s=>[...s,{...obj,id:Date.now(),name:obj.name+" copy",x:obj.x+.5,z:obj.z+.5}]);
- return <main className="page editor-page"><div className="page-head"><div><div className="eyebrow">ESKÅDIN CREATOR · WEBGL 3D</div><h1 className="page-title">{t.create}</h1><p>editor 3D real: cámara orbital, selección, gizmos de mover/rotar/escalar, objetos, luces y edición táctil.</p></div><div className="actions"><button className="button button-ghost" onClick={saveScene}>{saved?"✓ "+t.save:t.save}</button><Link className="button button-primary" to="/publish">{t.publish}</Link></div></div>
- <div className="editor-toolbar"><button className={tool==="select"?"active":""} onClick={()=>setTool("select")}>↖ Select</button><button className={tool==="move"?"active":""} onClick={()=>setTool("move")}>✥ Move</button><button className={tool==="rotate"?"active":""} onClick={()=>setTool("rotate")}>↻ Rotate</button><button className={tool==="scale"?"active":""} onClick={()=>setTool("scale")}>⤢ Scale</button><span className="tool-spacer"/><button onClick={()=>setGrid(!grid)}>{grid?"▦ Grid":"□ Grid"}</button><button onClick={dup}>＋ Duplicate</button><button onClick={del}>⌫ Delete</button><button onClick={()=>setScene(sceneSeed)}>↺ Reset</button></div>
- <div className="editor-layout"><aside className="editor-side"><b>{t.objects}</b>{["wall","cube","light","sound","spawn","camera","text"].map(type=><button key={type} onClick={()=>add(type)}>＋ {type}</button>)}<div className="object-list">{scene.map(o=><button className={o.id===selected?"selected":""} onClick={()=>setSelected(o.id)} key={o.id}>{o.name}</button>)}</div></aside>
- <div className="editor-canvas real3d"><div className="viewport-hud"><span>WEBGL VIEWPORT</span><span>one finger = orbit · wheel = zoom · gizmo = transform</span></div><ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd}/></div>
- <aside className="properties"><b>{t.properties}</b>{obj?<><label>Name<input value={obj.name} onChange={e=>upd(obj.id,{name:e.target.value})}/></label><div className="xyz"><label>X<input type="number" step=".1" value={obj.x} onChange={e=>upd(obj.id,{x:Number(e.target.value)})}/></label><label>Y<input type="number" step=".1" value={obj.y} onChange={e=>upd(obj.id,{y:Number(e.target.value)})}/></label><label>Z<input type="number" step=".1" value={obj.z} onChange={e=>upd(obj.id,{z:Number(e.target.value)})}/></label></div><div className="xyz"><label>RX<input type="number" value={obj.rx} onChange={e=>upd(obj.id,{rx:Number(e.target.value)})}/></label><label>RY<input type="number" value={obj.ry} onChange={e=>upd(obj.id,{ry:Number(e.target.value)})}/></label><label>RZ<input type="number" value={obj.rz} onChange={e=>upd(obj.id,{rz:Number(e.target.value)})}/></label></div><label>Scale<input type="number" step=".1" min=".1" value={obj.s} onChange={e=>upd(obj.id,{s:Number(e.target.value)})}/></label></>:<span className="muted">{t.selectObject}</span>}</aside></div><div className="editor-bottom"><span>{scene.length} objects · WebGL · touch/mouse · saved locally</span><Link className="button button-ghost" to="/publish">{t.publish}</Link></div></main>}
+ const del=()=>{if(selected==null)return;setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
+ const dup=()=>{const o=scene.find(x=>x.id===selected);if(o){const id=Date.now();setScene(s=>[...s,{...o,id,name:o.name+" copy",x:o.x+.6,z:o.z+.6}]);setSelected(id)}};
+ const reset=()=>{setScene(sceneSeed);setSelected(sceneSeed[0]?.id||null)};
+ const toggleFullscreen=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch{}};
+ useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
+ const groups={create:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"]],scene:[["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]]};
+ return <main className="page editor-page">
+  <div className="editor-topbar"><div><div className="eyebrow">ESKÅDIN CREATOR · WEBGL 3D</div><strong className="editor-project-name">Untitled project</strong><span className="editor-status">● LOCAL · {scene.length} OBJECTS</span></div><div className="editor-top-actions"><button className="button button-ghost small" onClick={toggleFullscreen}>⛶ Fullscreen</button><button className="button button-ghost small" onClick={saveScene}>{saved?"✓ "+t.save:t.save}</button><Link className="button button-primary small" to="/publish">{t.publish}</Link></div></div>
+  <div className="editor-toolbar editor-toolbar-pro"><button className={tool==="select"?"active":""} onClick={()=>setTool("select")}>↖ Select <kbd>Q</kbd></button><button className={tool==="move"?"active":""} onClick={()=>setTool("move")}>✥ Move <kbd>W</kbd></button><button className={tool==="rotate"?"active":""} onClick={()=>setTool("rotate")}>↻ Rotate <kbd>E</kbd></button><button className={tool==="scale"?"active":""} onClick={()=>setTool("scale")}>⤢ Scale <kbd>R</kbd></button><span className="tool-spacer"/><button className={grid?"active":""} onClick={()=>setGrid(!grid)}>▦ Grid</button><button className={snap?"active":""} onClick={()=>setSnap(!snap)}>⌗ Snap</button><button className={wireframe?"active":""} onClick={()=>setWireframe(!wireframe)}>◇ Wire</button><button className={showAxes?"active":""} onClick={()=>setShowAxes(!showAxes)}>XYZ</button><button onClick={dup}>＋ Duplicate</button><button onClick={del}>⌫ Delete</button><button onClick={reset}>↺ Reset</button></div>
+  <div className="editor-workspace">
+   <aside className="editor-dock left-dock">
+    <div className="dock-tabs"><button className={panel==="create"?"active":""} onClick={()=>setPanel("create")}>CREATE</button><button className={panel==="scene"?"active":""} onClick={()=>setPanel("scene")}>SCENE</button></div>
+    {panel==="create"&&<><div className="dock-section-title">PRIMITIVES</div><div className="primitive-grid">{groups.create.map(([type,label])=><button key={type} onClick={()=>add(type)}><span>{type==="sphere"?"●":type==="cylinder"?"◉":type==="torus"?"◎":type==="plane"?"▱":type==="wall"?"▰":"◆"}</span>{label}</button>)}</div><div className="dock-section-title">SCENE OBJECTS</div><div className="primitive-grid">{groups.scene.map(([type,label])=><button key={type} onClick={()=>add(type)}><span>✦</span>{label}</button>)}</div></>}
+    {panel==="scene"&&<div className="object-list object-list-large">{scene.map(o=><button className={o.id===selected?"selected":""} onClick={()=>setSelected(o.id)} key={o.id}><span>{o.type}</span><b>{o.name}</b></button>)}</div>}
+   </aside>
+   <section className="editor-center">
+    <div className="viewport-hud"><span>WEBGL VIEWPORT · 3D</span><span>Orbit: drag · Zoom: wheel/pinch · Gizmo: transform</span></div>
+    <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd}/>
+    <div className="viewport-badges"><span>WebGL 2</span><span>Shadows</span><span>Touch</span><span>{wireframe?"Wireframe":"Solid"}</span><span>{snap?"Snap ON":"Snap OFF"}</span></div>
+   </section>
+   <aside className="editor-dock right-dock">
+    <div className="dock-heading"><span>INSPECTOR</span><span>{obj?.type||"—"}</span></div>
+    {obj?<><label>Name<input value={obj.name} onChange={e=>upd(obj.id,{name:e.target.value})}/></label><div className="inspector-group"><b>TRANSFORM</b><div className="xyz"><label>X<input type="number" step=".1" value={obj.x} onChange={e=>upd(obj.id,{x:Number(e.target.value)})}/></label><label>Y<input type="number" step=".1" value={obj.y} onChange={e=>upd(obj.id,{y:Number(e.target.value)})}/></label><label>Z<input type="number" step=".1" value={obj.z} onChange={e=>upd(obj.id,{z:Number(e.target.value)})}/></label></div><div className="xyz"><label>RX<input type="number" step="1" value={obj.rx} onChange={e=>upd(obj.id,{rx:Number(e.target.value)})}/></label><label>RY<input type="number" step="1" value={obj.ry} onChange={e=>upd(obj.id,{ry:Number(e.target.value)})}/></label><label>RZ<input type="number" step="1" value={obj.rz} onChange={e=>upd(obj.id,{rz:Number(e.target.value)})}/></label></div><label>Scale<input type="number" step=".1" min=".1" value={obj.s} onChange={e=>upd(obj.id,{s:Number(e.target.value)})}/></label></div><div className="inspector-group"><b>QUICK ACTIONS</b><div className="inspector-actions"><button onClick={dup}>Duplicate</button><button onClick={()=>upd(obj.id,{x:0,y:.5,z:0,rx:0,ry:0,rz:0,s:1})}>Reset transform</button><button className="danger-mini" onClick={del}>Delete object</button></div></div></>:<div className="empty-inspector">Select an object in the viewport or Scene panel.</div>}
+    <div className="inspector-group editor-stats"><b>SCENE</b><span>{scene.length} objects</span><span>Grid {grid?"ON":"OFF"}</span><span>Snap {snap?"ON":"OFF"}</span><span>WebGL realtime preview</span></div>
+   </aside>
+  </div>
+  <div className="editor-statusbar"><span>ESCÅDIN 3D STUDIO · {scene.length} objects · local project</span><span>Ctrl+S Save · Q Select · W Move · E Rotate · R Scale · Del Delete</span><Link className="button button-ghost small" to="/publish">{t.publish}</Link></div>
+ </main>}
+
 function Developer(){const[,t]=useLang();return <main className="page"><div className="eyebrow">{t.developer}</div><h1 className="page-title">{t.yourStudio}</h1><div className="dashboard-grid"><Link to="/editor" className="dash"><b>🧱 {t.create}</b><span>{t.buildPreview}</span></Link><Link to="/projects" className="dash"><b>🗂 {t.projects}</b><span>{t.manageProjects}</span></Link><Link to="/publish" className="dash"><b>📤 {t.publish}</b><span>{t.releaseGame}</span></Link><Link to="/statistics" className="dash"><b>📊 {t.statisticsShort}</b><span>{t.visitsLikesSessions}</span></Link></div></main>}
 
 function Publish(){const[,t]=useLang();const[games,setGames]=useGames();const{developer}=useUser();const nav=useNavigate();const[name,setName]=useState("My new game");const[desc,setDesc]=useState("A new Eskådin Stüdis experience.");const[done,setDone]=useState(false);const blocked=blockedIdentity(name);const go=()=>{if(blocked)return;setGames(g=>[...g,{id:Date.now(),title:name,genre:"3D Experience",tag:"New",color:"violet",players:0,likes:0,author:developer?.name||"Eskådin Studio",description:desc}]);setDone(true)};if(!developer)return <main className="page narrow"><div className="form-card"><div className="eyebrow">{t.developer}</div><h1 className="page-title">{t.developerRequired}</h1><p className="muted">{t.developerRequiredText}</p><button className="button button-primary" onClick={()=>nav("/developer/register")}>{t.createDeveloper}</button></div></main>;return <main className="page narrow"><div className="eyebrow">{t.publish}</div><h1 className="page-title">{done?t.published:t.publish}</h1>{done?<div className="success-card"><b>✓ {t.publish}</b><p>{t.localCatalog}</p><Link className="button button-primary" to="/games">{t.explore}</Link></div>:<div className="form-card"><label>{t.name}<input value={name} onChange={e=>setName(e.target.value)}/></label>{blocked&&<p className="error">{t.reservedName}</p>}<label>{t.description}<textarea value={desc} onChange={e=>setDesc(e.target.value)}/></label><label>{t.settings}<select><option>{t.public}</option><option>{t.private}</option></select></label><button className="button button-primary" disabled={blocked} onClick={go}>{t.publish} · 0€</button><p className="muted">{t.earnedOnly}</p></div>}</main>}
