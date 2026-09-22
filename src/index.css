@@ -783,3 +783,65 @@ body:has(.editor-page) .nav{padding:0 24px}
   max-height:190px;
   overflow:auto;
 }
+
+/* Studio touch controls: large, readable targets */
+.studio-sidebar-actions button,
+.studio-sidebar-actions a,
+.studio-tool-grid button,
+.studio-view-grid button,
+.studio-quick-actions button,
+.studio-bottom-actions button,
+.studio-object-grid button,
+.studio-scene-list button,
+.studio-menu-button{
+  min-height:48px;
+  min-width:48px;
+  font-size:15px;
+  font-weight:650;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.studio-sidebar-actions button,
+.studio-sidebar-actions a{
+  width:100%;
+  padding:12px 14px;
+  gap:10px;
+}
+.studio-tool-grid,
+.studio-view-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.studio-tool-grid button,
+.studio-view-grid button{
+  padding:10px 8px;
+  line-height:1.15;
+}
+.studio-object-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.studio-object-grid button{min-height:46px;padding:10px 8px}
+.studio-scene-list button{text-align:left;padding:12px 13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-sidebar-actions button:active,
+.studio-sidebar-actions a:active,
+.studio-tool-grid button:active,
+.studio-view-grid button:active,
+.studio-quick-actions button:active,
+.studio-bottom-actions button:active,
+.studio-object-grid button:active,
+.studio-scene-list button:active{transform:scale(.97)}
+.studio-menu-button{width:52px;height:52px;font-size:24px;display:grid;place-items:center}
+@media(max-width:620px){
+  .studio-sidebar{width:min(88vw,360px)!important;padding:14px!important}
+  .studio-sidebar-head{padding:8px 4px 12px!important}
+  .studio-sidebar-brand{font-size:19px!important}
+  .studio-project-side{font-size:13px!important}
+  .studio-sidebar-section{font-size:12px!important;margin-top:14px!important;margin-bottom:7px!important}
+  .studio-sidebar-actions{gap:8px!important}
+  .studio-tool-grid,.studio-view-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .studio-tool-grid button,.studio-view-grid button{min-height:54px!important;font-size:14px!important}
+  .studio-sidebar-actions button,.studio-sidebar-actions a{min-height:52px!important;font-size:15px!important}
+  .studio-object-grid button{min-height:50px!important}
+  .studio-menu-button{width:50px!important;height:50px!important;top:10px!important;left:10px!important}
+}
+@media(hover:hover){
+  .studio-sidebar-actions button:hover,.studio-sidebar-actions a:hover,.studio-tool-grid button:hover,.studio-view-grid button:hover,.studio-quick-actions button:hover,.studio-bottom-actions button:hover,.studio-object-grid button:hover,.studio-scene-list button:hover{filter:brightness(1.12)}
+}
