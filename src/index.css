@@ -465,3 +465,6 @@ body:has(.editor-page) .nav{padding:0 24px}
 /* old editor topbar rules are intentionally neutralized */
 .editor-topbar,.editor-topbar-clean{display:none!important}
 @media(max-width:800px){.studio-app{height:100vh;min-height:100vh}.studio-nav-actions{grid-template-columns:1fr 1fr}.studio-language{font-size:8px}}
+
+.play-full{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;overflow:hidden!important;touch-action:none!important;overscroll-behavior:none!important}
+.game-runtime,.game-runtime-canvas{touch-action:none!important;overscroll-behavior:none!important}
