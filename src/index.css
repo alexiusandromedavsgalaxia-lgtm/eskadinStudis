@@ -1038,3 +1038,43 @@ body:has(.editor-page) .nav{padding:0 24px}
 .market-item-actions button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:900px){.avatar-editor-layout{grid-template-columns:1fr}.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.market-grid{grid-template-columns:1fr}.avatar-stage{min-height:330px}.avatar-dressing-room{min-height:460px}.avatar-chip-grid{grid-template-columns:1fr}.market-balance{width:100%;text-align:center;box-sizing:border-box}}
+
+
+/* Object Studio: avatar asset creation pipeline */
+.object-studio-page{min-height:100dvh;box-sizing:border-box;padding:28px 24px 50px;max-width:1500px;margin:auto}
+.object-studio-header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:22px}
+.object-studio-header h1{font-size:42px;letter-spacing:-.045em;margin:6px 0 8px}
+.object-studio-header p{margin:0;color:#8794a8}
+.object-studio-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.object-studio-layout{display:grid;grid-template-columns:245px minmax(0,1fr) 330px;gap:12px;min-height:700px}
+.object-studio-panel,.object-studio-preview{background:#111722;border:1px solid rgba(255,255,255,.09);border-radius:16px;overflow:hidden}
+.object-studio-panel{padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.object-studio-panel-title{font:900 10px ui-monospace,monospace;letter-spacing:.13em;color:#7f8da2;margin:5px 0 2px}
+.object-studio-create-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.object-studio-create-grid button,.object-studio-tools button,.object-studio-type-grid button{border:1px solid rgba(255,255,255,.09);background:#192231;color:#dfe6ef;border-radius:9px;padding:9px 8px;font-size:12px;font-weight:750;cursor:pointer}
+.object-studio-create-grid button:hover,.object-studio-tools button:hover,.object-studio-type-grid button:hover{filter:brightness(1.13)}
+.object-studio-scene-list{display:flex;flex-direction:column;gap:5px;overflow:auto;max-height:500px}
+.object-studio-scene-list button{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid transparent;background:rgba(255,255,255,.035);color:#dfe6ef;border-radius:8px;padding:9px;text-align:left;cursor:pointer}
+.object-studio-scene-list button small{color:#6f7d91;font-size:9px}
+.object-studio-scene-list button.chosen{background:rgba(91,124,255,.17);border-color:#6f8dff}
+.object-studio-preview{display:flex;flex-direction:column;min-width:0}
+.object-studio-preview-bar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px}
+.object-studio-preview-bar span{color:#758398;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.object-studio-preview>.three-editor-viewport{flex:1;min-height:580px}
+.object-studio-tools{display:flex;gap:6px;flex-wrap:wrap;padding:10px;border-top:1px solid rgba(255,255,255,.08);background:#0d131c}
+.object-studio-tools button.chosen,.object-studio-type-grid button.chosen{background:rgba(91,124,255,.2);border-color:#6f8dff;color:#fff}
+.object-studio-inspector{gap:13px}
+.object-studio-inspector label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800;color:#aab5c5}
+.object-studio-inspector input,.object-studio-inspector textarea,.object-studio-inspector select{box-sizing:border-box;width:100%;border:1px solid rgba(255,255,255,.1);background:#0b1018;color:#fff;border-radius:9px;padding:10px;outline:none}
+.object-studio-inspector textarea{min-height:76px;resize:vertical}
+.object-studio-inspector input:focus,.object-studio-inspector textarea:focus,.object-studio-inspector select:focus{border-color:#6f8dff}
+.object-studio-type-grid{display:grid;grid-template-columns:1fr;gap:7px}
+.object-studio-checks{display:flex;flex-direction:column;gap:6px;padding:11px;border-radius:10px;background:rgba(184,255,90,.045);border:1px solid rgba(184,255,90,.08);color:#aab8ac;font-size:10px;line-height:1.35}
+.object-studio-generate{width:100%;min-height:46px}
+.object-studio-note{font-size:10px;line-height:1.45;color:#66748a;margin:0}
+.market-creator-link{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:8px 0 16px;border:1px solid rgba(184,255,90,.1);border-radius:12px;background:rgba(184,255,90,.035);color:#9aa8ba;font-size:12px}
+.market-item-created .market-item-preview{position:relative}
+.market-item-created .market-item-preview small{position:absolute;bottom:10px;right:10px;font-size:9px;color:#8290a5;letter-spacing:.1em}
+.market-item-created .market-item-info p{font-size:11px;color:#77859a;min-height:32px;margin:4px 0}
+@media(max-width:1100px){.object-studio-layout{grid-template-columns:210px minmax(0,1fr)}.object-studio-inspector{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.object-studio-inspector .object-studio-panel-title,.object-studio-inspector .object-studio-type-grid,.object-studio-inspector .object-studio-checks,.object-studio-inspector .object-studio-generate,.object-studio-inspector .object-studio-note{grid-column:1/-1}}
+@media(max-width:720px){.object-studio-page{padding:16px 10px 35px}.object-studio-header{align-items:flex-start;flex-direction:column}.object-studio-header h1{font-size:31px}.object-studio-layout{grid-template-columns:1fr}.object-studio-panel{min-height:auto}.object-studio-scene-list{max-height:210px}.object-studio-preview{min-height:500px}.object-studio-preview>.three-editor-viewport{min-height:430px}.object-studio-inspector{display:flex}.market-creator-link{align-items:flex-start;flex-direction:column}}
