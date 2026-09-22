@@ -392,3 +392,10 @@ body:has(.editor-page) .nav{padding:0 24px}
  .editor-workspace{grid-template-rows:145px minmax(0,1fr) 190px}
  .editor-top-actions .button{padding:7px 9px}
 }
+
+.studio-control-strip{display:flex;align-items:center;gap:4px;overflow:auto;max-width:65vw}
+.studio-control-strip button,.editor-control-footer button{border:1px solid var(--line);background:#151a23;color:#aeb7c5;border-radius:6px;padding:6px 8px;font-size:9px;white-space:nowrap}
+.studio-control-strip button:hover,.editor-control-footer button:hover{color:var(--accent);border-color:rgba(184,255,90,.35)}
+.editor-control-footer{display:flex;gap:5px;position:absolute;left:12px;bottom:42px;z-index:5;padding:5px;border:1px solid var(--line);background:rgba(9,12,17,.9);border-radius:8px;backdrop-filter:blur(10px)}
+.editor-center{position:relative}
+@media(max-width:800px){.studio-control-strip{display:none}.editor-control-footer{left:6px;bottom:6px;max-width:calc(100% - 12px);overflow:auto}}
