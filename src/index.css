@@ -468,3 +468,12 @@ body:has(.editor-page) .nav{padding:0 24px}
 
 .play-full{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;overflow:hidden!important;touch-action:none!important;overscroll-behavior:none!important}
 .game-runtime,.game-runtime-canvas{touch-action:none!important;overscroll-behavior:none!important}
+
+.touch-look-zone{position:absolute;inset:0 0 0 45%;z-index:2;touch-action:none;pointer-events:auto}
+.touch-stick{z-index:6;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.touch-stick-knob{position:absolute;width:54px;height:54px;left:50%;top:50%;transform:translate3d(0,0,0);margin:-27px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);box-shadow:0 4px 18px rgba(0,0,0,.25);pointer-events:none}
+.touch-stick span{position:relative;z-index:1;pointer-events:none;opacity:.7}
+.touch-jump{z-index:7}
+.runtime-exit{z-index:8}
+.runtime-crosshair{z-index:5}
+.runtime-hint{z-index:5}
