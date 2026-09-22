@@ -344,7 +344,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   {chatOpen&&<div className="runtime-chat-panel">
    <div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div>
    <div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div>
-   <form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save("eskadin-experience-chat",next);setChatText("")}}>
+   <form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}>
     <input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/>
     <button type="submit">➤</button>
    </form>
