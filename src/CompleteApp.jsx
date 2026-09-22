@@ -75,7 +75,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
  const hostRef=useRef(null);
  const selectedRef=useRef(selected);
  const toolRef=useRef(tool);
- const sceneRef=useRef(scene);
+ const sceneRef=useRef(scene); const transformRef=useRef(null); const objectMapRef=useRef(new Map());
  useEffect(()=>{selectedRef.current=selected},[selected]);
  useEffect(()=>{toolRef.current=tool},[tool]);
  useEffect(()=>{sceneRef.current=scene},[scene]);
@@ -101,7 +101,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
    orbit.target.set(0,0,0);
    orbit.minDistance=2;
    orbit.maxDistance=40;
-   const transform=new TransformControls(camera,renderer.domElement);
+   const transform=new TransformControls(camera,renderer.domElement); transformRef.current=transform;
    transform.setSize(1.05);
    scene3.add(transform.getHelper());
    const ambient=new THREE.HemisphereLight(0xcfe4ff,0x182030,1.8);
@@ -133,7 +133,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
      const m=transform.object;
      upd(id,{x:Number(m.position.x.toFixed(3)),y:Number(m.position.y.toFixed(3)),z:Number(m.position.z.toFixed(3)),rx:Number(THREE.MathUtils.radToDeg(m.rotation.x).toFixed(2)),ry:Number(THREE.MathUtils.radToDeg(m.rotation.y).toFixed(2)),rz:Number(THREE.MathUtils.radToDeg(m.rotation.z).toFixed(2)),s:Number(m.scale.x.toFixed(3))});
    };
-   transform.addEventListener("objectChange",sync);
+   transform.addEventListener("objectChange",sync);\n   const selectedObject=objectMap.get(selectedRef.current); if(selectedObject) transform.attach(selectedObject);
    transform.addEventListener("dragging-changed",e=>{orbit.enabled=!e.value});
    const resize=()=>{
      const w=Math.max(host.clientWidth,320),h=Math.max(host.clientHeight,460);
@@ -144,7 +144,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd}){
    const animate=()=>{raf=requestAnimationFrame(animate);orbit.update();renderer.render(scene3,camera)};
    animate();
    return()=>{cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener("pointerdown",pick);transform.removeEventListener("objectChange",sync);transform.dispose();orbit.dispose();renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
- },[scene.length]);
+ },[scene.length]);\n useEffect(()=>{const t=transformRef.current;if(t){t.setMode(tool==="rotate"?"rotate":tool==="scale"?"scale":"translate");}},[tool]);\n useEffect(()=>{const t=transformRef.current;if(t){const o=objectMapRef.current.get(selected);if(o)t.attach(o);else t.detach();}},[selected]);\n useEffect(()=>{const c=hostRef.current;if(c){const el=c.querySelector("canvas");if(el)el.style.touchAction="none";}},[grid]);
  useEffect(()=>{
    const canvas=hostRef.current?.querySelector("canvas");
    if(!canvas)return;
