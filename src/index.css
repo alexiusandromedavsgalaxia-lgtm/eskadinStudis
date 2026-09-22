@@ -1005,3 +1005,36 @@ body:has(.editor-page) .nav{padding:0 24px}
 .runtime-chat-compose input{min-width:0;flex:1;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#121925;color:#fff;padding:10px 12px;outline:0}
 .runtime-chat-compose button{width:44px;border:0;border-radius:10px;background:#5b7cff;color:#fff;font-size:18px}
 @media(max-width:620px){.runtime-chat-button{top:12px;right:12px;width:50px;height:50px}.runtime-chat-panel{top:72px;right:10px;width:calc(100vw - 20px);height:min(52dvh,420px)}}
+
+
+.avatar-editor-page,.marketplace-page{padding-bottom:40px}
+.avatar-editor-layout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(320px,1.1fr);gap:18px}
+.avatar-dressing-room{display:flex;flex-direction:column;justify-content:space-between;min-height:560px}
+.avatar-stage{flex:1;min-height:420px;display:grid;place-items:center;border-radius:18px;background:radial-gradient(circle at 50% 35%,rgba(91,124,255,.18),rgba(8,12,20,.1) 45%,rgba(255,255,255,.02));overflow:hidden}
+.avatar-editor-actions{display:flex;gap:10px;margin-top:16px}
+.avatar-editor-controls{display:flex;flex-direction:column;gap:14px}
+.avatar-editor-controls h2{margin:8px 0 0}
+.avatar-editor-controls label{display:flex;flex-direction:column;gap:7px;font-weight:700}
+.avatar-editor-controls textarea,.avatar-editor-controls input{width:100%;box-sizing:border-box}
+.avatar-choice-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.avatar-choice-row>span{width:90px;font-size:13px;font-weight:700}
+.swatch{width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.16);cursor:pointer}
+.swatch.chosen{outline:3px solid rgba(255,255,255,.85);outline-offset:2px}
+.avatar-chip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.avatar-chip{padding:11px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.045);color:inherit;text-align:left;cursor:pointer}
+.avatar-chip.chosen{border-color:#6f8dff;background:rgba(91,124,255,.16)}
+.market-balance{align-self:center;padding:10px 14px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.05);font-weight:800}
+.market-toolbar{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.market-toolbar>input{flex:1;min-width:220px}
+.market-categories{display:flex;gap:7px;overflow:auto;padding-bottom:3px}
+.market-categories button{white-space:nowrap;padding:10px 13px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.04);color:inherit;cursor:pointer}
+.market-categories button.chosen{background:rgba(91,124,255,.18);border-color:#6f8dff}
+.market-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.market-item{overflow:hidden;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(255,255,255,.035)}
+.market-item-preview{height:180px;display:grid;place-items:center;background:radial-gradient(circle,rgba(91,124,255,.17),rgba(255,255,255,.02))}
+.market-item-preview span{font-size:64px}
+.market-item-info{padding:13px}
+.market-item-info small{opacity:.6}.market-item-info h3{margin:4px 0 8px}.market-item-actions{margin-top:12px}
+.market-item-actions button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:900px){.avatar-editor-layout{grid-template-columns:1fr}.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.market-grid{grid-template-columns:1fr}.avatar-stage{min-height:330px}.avatar-dressing-room{min-height:460px}.avatar-chip-grid{grid-template-columns:1fr}.market-balance{width:100%;text-align:center;box-sizing:border-box}}
