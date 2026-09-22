@@ -399,3 +399,10 @@ body:has(.editor-page) .nav{padding:0 24px}
 .editor-control-footer{display:flex;gap:5px;position:absolute;left:12px;bottom:42px;z-index:5;padding:5px;border:1px solid var(--line);background:rgba(9,12,17,.9);border-radius:8px;backdrop-filter:blur(10px)}
 .editor-center{position:relative}
 @media(max-width:800px){.studio-control-strip{display:none}.editor-control-footer{left:6px;bottom:6px;max-width:calc(100% - 12px);overflow:auto}}
+
+.editor-topbar-clean{display:grid;grid-template-columns:48px 1fr auto;align-items:center;min-height:46px;padding:0 10px}
+.editor-sidebar-brand{display:flex;align-items:center}
+.studio-sidebar-toggle{width:34px;height:34px;border:1px solid var(--line);background:#151a23;color:#cbd3df;border-radius:7px;cursor:pointer}
+.editor-topbar-clean .studio-control-strip{justify-self:start}
+.editor-project-right{justify-self:end;margin-left:auto;font-size:12px;color:#e7ebf2}
+@media(max-width:800px){.editor-topbar-clean{grid-template-columns:40px 1fr auto}.editor-project-right{font-size:11px}.studio-control-strip{display:none}}
