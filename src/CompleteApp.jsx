@@ -52,12 +52,16 @@ function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useSt
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
 function GameRuntime({game,onExit}){
  const hostRef=useRef(null);
+ const runtimeRef=useRef(null);
+ const stickRef=useRef(null);
+ const knobRef=useRef(null);
  const keysRef=useRef({});
- const touchRef=useRef({x:0,z:0});
- const lookRef=useRef({active:false,lastX:0,lastY:0});
+ const touchRef=useRef({x:0,z:0,active:false,id:null});
+ const lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
  const jumpRef=useRef(false);
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
+  const runtime=runtimeRef.current;
   const scene3=new THREE.Scene();
   scene3.background=new THREE.Color(0x101722);
   scene3.fog=new THREE.Fog(0x101722,18,70);
@@ -75,9 +79,7 @@ function GameRuntime({game,onExit}){
   const project=read("eskadin-project",null);
   const source=Array.isArray(project?.scene)&&project.scene.length?project.scene:[];
   const world=[];
-  source.forEach(o=>{
-   const m=meshFor(o);m.userData.runtimeType=o.type;scene3.add(m);world.push(m);
-  });
+  source.forEach(o=>{const m=meshFor(o);m.userData.runtimeType=o.type;scene3.add(m);world.push(m)});
   if(!world.length){
    const floor=new THREE.Mesh(new THREE.BoxGeometry(36,.4,36),new THREE.MeshStandardMaterial({color:0x273242,roughness:.9}));
    floor.position.y=-.2;floor.receiveShadow=true;scene3.add(floor);world.push(floor);
@@ -102,14 +104,9 @@ function GameRuntime({game,onExit}){
   const keyup=e=>{keysRef.current[e.code]=false};
   window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
 
-  const bindPointer=()=>{
-   lookRef.current.active=true;
-   lookRef.current.lastX=0;lookRef.current.lastY=0;
-   renderer.domElement.setPointerCapture?.(event.pointerId);
-  };
-  const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current.active=true;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;renderer.domElement.setPointerCapture?.(e.pointerId)}};
+  const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)}};
   const pointerMove=e=>{
-   if(!lookRef.current.active)return;
+   if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
    const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
    lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
    yaw-=dx*.004;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.003));
@@ -120,21 +117,55 @@ function GameRuntime({game,onExit}){
   renderer.domElement.addEventListener("pointerup",pointerUp);
   renderer.domElement.addEventListener("pointercancel",pointerUp);
 
-  const onTouchMove=e=>{
-   const t=e.touches?.[0];if(!t)return;
-   const r=renderer.domElement.getBoundingClientRect();
-   if(t.clientX<r.left+r.width*.45){
-    const cx=r.left+82,cy=r.top+r.height-92;
-    touchRef.current.x=Math.max(-1,Math.min(1,(t.clientX-cx)/58));
-    touchRef.current.z=Math.max(-1,Math.min(1,(t.clientY-cy)/58));
-   }
-   e.preventDefault();
+  const updateStick=e=>{
+   const base=stickRef.current;if(!base)return;
+   const r=base.getBoundingClientRect();
+   const radius=Math.min(r.width,r.height)*.5;
+   const max=radius*.62;
+   const dx=e.clientX-(r.left+r.width*.5),dy=e.clientY-(r.top+r.height*.5);
+   const len=Math.hypot(dx,dy),scale=len>max?max/len:1;
+   const x=dx*scale/max,z=dy*scale/max;
+   touchRef.current.x=Math.max(-1,Math.min(1,x));
+   touchRef.current.z=Math.max(-1,Math.min(1,z));
+   if(knobRef.current)knobRef.current.style.transform=`translate3d(${dx*scale}px,${dy*scale}px,0)`;
   };
-  renderer.domElement.addEventListener("touchmove",onTouchMove,{passive:false});
-  const onTouchEnd=()=>{touchRef.current.x=0;touchRef.current.z=0};
-  renderer.domElement.addEventListener("touchend",onTouchEnd);
-  const onJump=()=>{jumpRef.current=true};
-  const jumpButton=host.querySelector("[data-jump]");
+  const resetStick=()=>{
+   touchRef.current.x=0;touchRef.current.z=0;touchRef.current.active=false;touchRef.current.id=null;
+   if(knobRef.current)knobRef.current.style.transform="translate3d(0,0,0)";
+  };
+  const stickDown=e=>{
+   if(e.pointerType==="mouse")return;
+   e.preventDefault();touchRef.current.active=true;touchRef.current.id=e.pointerId;
+   stickRef.current?.setPointerCapture?.(e.pointerId);updateStick(e);
+  };
+  const stickMove=e=>{if(touchRef.current.active&&e.pointerId===touchRef.current.id){e.preventDefault();updateStick(e)}};
+  const stickUp=e=>{if(e.pointerId===touchRef.current.id)resetStick()};
+  stickRef.current?.addEventListener("pointerdown",stickDown);
+  stickRef.current?.addEventListener("pointermove",stickMove);
+  stickRef.current?.addEventListener("pointerup",stickUp);
+  stickRef.current?.addEventListener("pointercancel",stickUp);
+
+  const lookZone=runtime?.querySelector("[data-look]");
+  const lookDown=e=>{
+   if(e.pointerType==="mouse")return;
+   e.preventDefault();lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};
+   lookZone?.setPointerCapture?.(e.pointerId);
+  };
+  const lookMove=e=>{
+   if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
+   e.preventDefault();
+   const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
+   lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
+   yaw-=dx*.006;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.004));
+  };
+  const lookUp=e=>{if(e.pointerId===lookRef.current.id)lookRef.current.active=false};
+  lookZone?.addEventListener("pointerdown",lookDown);
+  lookZone?.addEventListener("pointermove",lookMove);
+  lookZone?.addEventListener("pointerup",lookUp);
+  lookZone?.addEventListener("pointercancel",lookUp);
+
+  const onJump=e=>{e.preventDefault();jumpRef.current=true};
+  const jumpButton=runtime?.querySelector("[data-jump]");
   jumpButton?.addEventListener("pointerdown",onJump);
 
   const resize=()=>{const w=Math.max(320,host.clientWidth),h=Math.max(320,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
@@ -144,8 +175,8 @@ function GameRuntime({game,onExit}){
    raf=requestAnimationFrame(animate);
    const dt=Math.min(.033,(now-last)/1000);last=now;
    const k=keysRef.current;
-   const mx=(k.KeyD?1:0)-(k.KeyA?1:0)+(touchRef.current.x);
-   const mz=(k.KeyS?1:0)-(k.KeyW?1:0)+(touchRef.current.z);
+   const mx=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+touchRef.current.x));
+   const mz=Math.max(-1,Math.min(1,(k.KeyS?1:0)-(k.KeyW?1:0)+touchRef.current.z));
    move.set(mx,0,mz);if(move.lengthSq()>1)move.normalize();
    forward.set(Math.sin(yaw),0,Math.cos(yaw));right.set(Math.cos(yaw),0,-Math.sin(yaw));
    const dir=new THREE.Vector3().addScaledVector(right,move.x).addScaledVector(forward,move.z);
@@ -161,11 +192,16 @@ function GameRuntime({game,onExit}){
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
-  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);renderer.domElement.removeEventListener("touchmove",onTouchMove);renderer.domElement.removeEventListener("touchend",onTouchEnd);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+  return()=>{
+   cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);
+   renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);
+   stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);
+   lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);
+   jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});
+  };
  },[]);
- return <div className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="runtime-crosshair">+</div><div className="runtime-hint">WASD / joystick · mouse / touch look · SPACE / jump · SHIFT run</div><div className="touch-stick"><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><button type="button" className="runtime-exit" onClick={onExit}>EXIT</button></div>
+ return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div className="runtime-crosshair">+</div><div className="runtime-hint">WASD / joystick · mouse / touch look · SPACE / jump · SHIFT run</div><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><button type="button" className="runtime-exit" onClick={onExit}>EXIT</button></div>
 }
-
 function Play(){
  const[,t]=useLang();const{id}=useParams();const[games]=useGames();const game=games.find(g=>String(g.id)===id)||null;
  const[started,setStarted]=useState(false);
