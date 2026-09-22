@@ -92,8 +92,8 @@ function GameRuntime({game,onExit}){
 
   const player=new THREE.Group();
   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.35,.9,8,16),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
-  body.position.y=1;body.castShadow=true;player.add(body);
-  player.position.set(0,floorY+0.02,4);scene3.add(player);
+  body.position.y=.8;body.castShadow=true;player.add(body);
+  player.position.set(0,floorY,4);scene3.add(player);
 
   const velocity=new THREE.Vector3();
   const forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
