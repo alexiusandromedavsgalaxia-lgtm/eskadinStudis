@@ -80,9 +80,17 @@ function GameRuntime({game,onExit}){
   const source=Array.isArray(project?.scene)&&project.scene.length?project.scene:[];
   const world=[];
   source.forEach(o=>{const m=meshFor(o);m.userData.runtimeType=o.type;scene3.add(m);world.push(m)});
-  if(!world.length){
-   const floor=new THREE.Mesh(new THREE.BoxGeometry(36,.4,36),new THREE.MeshStandardMaterial({color:0x273242,roughness:.9}));
-   floor.position.y=-.2;floor.receiveShadow=true;scene3.add(floor);world.push(floor);
+  // The Studio viewport has a ground plane exactly at Y=0. Keep the gameplay floor on the same coordinate.
+  const runtimeGround=new THREE.Mesh(
+   new THREE.BoxGeometry(36,.2,36),
+   new THREE.MeshStandardMaterial({color:0x273242,roughness:.9})
+  );
+  runtimeGround.position.y=-.1;
+  runtimeGround.receiveShadow=true;
+  runtimeGround.userData.runtimeType="runtime-ground";
+  scene3.add(runtimeGround);
+  world.push(runtimeGround);
+  if(!source.length){
    for(let i=0;i<8;i++){
     const box=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshStandardMaterial({color:0x53657d,roughness:.7}));
     box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box);
@@ -95,7 +103,7 @@ function GameRuntime({game,onExit}){
   let floorY=0;
   for(const c of colliderBoxes){
    const type=c.mesh.userData.runtimeType;
-   if(type==="floor"||type==="plane"){
+   if(type==="floor"||type==="plane"||type==="runtime-ground"){
     floorY=Math.max(floorY,c.box.max.y);
    }
   }
