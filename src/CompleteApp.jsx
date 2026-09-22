@@ -420,6 +420,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
    orbit.target.set(0,0,0);
    orbit.minDistance=2;
    orbit.maxDistance=40;
+   host.__eskadinZoom=(direction)=>{if(direction>0)orbit.dollyIn(1.2);else orbit.dollyOut(1.2);orbit.update()};
    const transform=new TransformControls(camera,renderer.domElement); transformRef.current=transform;
    transform.setSize(1.05);
    scene3.add(transform.getHelper());
@@ -480,7 +481,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
    let raf;
    const animate=()=>{raf=requestAnimationFrame(animate);orbit.update();renderer.render(scene3,camera)};
    animate();
-   return()=>{cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener("pointerdown",pick);transform.removeEventListener("objectChange",onObjectChange);transform.removeEventListener("dragging-changed",onDraggingChanged);transform.dispose();orbit.dispose();renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+   return()=>{delete host.__eskadinZoom;cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener("pointerdown",pick);transform.removeEventListener("objectChange",onObjectChange);transform.removeEventListener("dragging-changed",onDraggingChanged);transform.dispose();orbit.dispose();renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[scene.length,grid,wireframe,showAxes,snap]);
  useEffect(()=>{const t=transformRef.current;if(t){t.setMode(tool==="rotate"?"rotate":tool==="scale"?"scale":"translate");if(tool==="select")t.detach();else{const o=objectMapRef.current.get(selectedRef.current);if(o)t.attach(o)}}},[tool]); useEffect(()=>{scene.forEach(o=>{const m=objectMapRef.current.get(o.id);if(m){m.position.set(o.x,o.y,o.z);m.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));m.scale.setScalar(o.s);m.traverse(child=>{if(child.isMesh&&child.material){if(o.color)child.material.color.set(o.color);child.material.roughness=o.roughness??child.material.roughness;child.material.metalness=o.metalness??child.material.metalness}})}})},[scene]);
  useEffect(()=>{const t=transformRef.current;if(t){const o=objectMapRef.current.get(selected);if(o)t.attach(o);else t.detach();}},[selected]);
