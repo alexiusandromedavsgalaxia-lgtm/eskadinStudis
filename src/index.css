@@ -442,3 +442,15 @@ body:has(.editor-page) .nav{padding:0 24px}
  .editor-main .left-dock{order:0}.editor-main .editor-center{order:1}.editor-main .right-dock{order:2}
  .viewport-project{top:7px;right:7px}.viewport-project span{display:none}
 }
+
+/* real game runtime */
+.play-full{height:100vh;min-height:100vh;padding:0;gap:0;background:#080b11;overflow:hidden}
+.game-runtime{position:relative;width:100%;height:100%;min-height:520px;overflow:hidden;background:#101722;touch-action:none}
+.game-runtime-canvas{position:absolute;inset:0}
+.game-runtime-canvas canvas{width:100%;height:100%;display:block;touch-action:none}
+.runtime-crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 20px ui-monospace,monospace;color:rgba(255,255,255,.72);pointer-events:none}
+.runtime-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:rgba(7,10,15,.72);color:#b8c1cf;font:700 9px ui-monospace,monospace;pointer-events:none;white-space:nowrap}
+.runtime-exit{position:absolute;top:14px;right:14px;z-index:5;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(7,10,15,.78);color:#eef2f7;padding:9px 12px;font:800 10px ui-monospace,monospace}
+.touch-stick{position:absolute;left:24px;bottom:24px;width:116px;height:116px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(10,14,20,.38);display:grid;place-items:center;color:#8792a2;font:800 9px ui-monospace,monospace;pointer-events:none}
+.touch-jump{position:absolute;right:26px;bottom:28px;width:82px;height:82px;border-radius:50%;border:1px solid rgba(184,255,90,.35);background:rgba(184,255,90,.12);color:#dfffb9;font:900 10px ui-monospace,monospace;touch-action:manipulation}
+@media(max-width:700px){.game-runtime{min-height:calc(100vh - 52px)}.runtime-hint{bottom:9px;font-size:7px;max-width:72%;text-align:center;white-space:normal}.runtime-exit{top:9px;right:9px}.touch-stick{left:16px;bottom:20px}.touch-jump{right:18px;bottom:22px}}
