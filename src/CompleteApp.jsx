@@ -99,9 +99,9 @@ function GameRuntime({game,onExit,onRestart}){
   }
   const playerRadius=.32;
   const playerHeight=1.9;
-  const stepHeight=.42;
+  const stepHeight=.32;
   const colliders=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
-  const colliderBoxes=colliders.map(m=>{const box=new THREE.Box3().setFromObject(m);return {mesh:m,box}});
+  const colliderBoxes=colliders.flatMap(m=>{const parts=m.userData.colliderParts||[m];return parts.map(part=>{const box=new THREE.Box3().setFromObject(part);return {mesh:part,box}})});
   let floorY=0;
   for(const c of colliderBoxes){
    const type=c.mesh.userData.runtimeType;
@@ -351,12 +351,13 @@ function meshFor(o){
  root.scale.setScalar(o.s);
  root.userData.objectId=o.id;
  root.userData.runtimeType=o.type;
- root.userData.colliderParts=root.userData.colliderParts||null;
+ root.userData.colliderParts=(o.type==="stairs"||o.type==="fence")?[]:null;
  root.traverse(child=>{
   child.userData.objectId=o.id;
   child.userData.runtimeType=o.type==="stairs"?"stair-step":o.type;
   if(child.isMesh){
    child.castShadow=true;child.receiveShadow=true;
+   if(root.userData.colliderParts)root.userData.colliderParts.push(child);
   }
  });
  return root;
@@ -406,7 +407,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
    ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene3.add(ground);
    const objects=[];
    const objectMap=new Map();
-   sceneRef.current.forEach(o=>{const m=meshFor(o);if(m.material)m.material.wireframe=wireframe;scene3.add(m);objects.push(m);objectMap.set(o.id,m)});
+   sceneRef.current.forEach(o=>{const m=meshFor(o);m.traverse(child=>{if(child.material)child.material.wireframe=wireframe});scene3.add(m);objects.push(m);objectMap.set(o.id,m)});
    objectMapRef.current=objectMap;
    const raycaster=new THREE.Raycaster();
    const pointer=new THREE.Vector2();
