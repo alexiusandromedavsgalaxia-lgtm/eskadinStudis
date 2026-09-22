@@ -50,7 +50,7 @@ function Home(){const[,t]=useLang();return <main><section className="hero"><div 
 function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useState("");const filtered=useMemo(()=>games.filter(g=>(g.title+" "+g.genre+" "+g.author).toLowerCase().includes(q.toLowerCase())),[games,q]);return <main className="page"><div className="page-head"><div><div className="eyebrow">{t.explore}</div><h1 className="page-title">{t.communityGames}</h1></div><Link className="button button-primary" to="/editor">{t.newGame}</Link></div><div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder={t.search}/></div><div className="games-grid">{filtered.map(g=><Link className="game-card" to={"/games/"+g.id} key={g.id}><div className={"game-cover "+g.color}><span>{g.tag}</span></div><div className="game-info"><h3>{g.title}</h3><p>{g.genre} · {g.author}</p><b>♥ {g.likes.toLocaleString()} · {g.players.toLocaleString()} online</b></div></Link>)}</div></main>}
 
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
-function GameRuntime({game,onExit}){
+function GameRuntime({game,onExit,onRestart}){
  const hostRef=useRef(null);
  const runtimeRef=useRef(null);
  const stickRef=useRef(null);
@@ -58,7 +58,7 @@ function GameRuntime({game,onExit}){
  const keysRef=useRef({});
  const touchRef=useRef({x:0,z:0,active:false,id:null});
  const lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
- const jumpRef=useRef(false);
+ const jumpRef=useRef(false);\n const pausedRef=useRef(false);
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
   const runtime=runtimeRef.current;
@@ -212,7 +212,7 @@ function GameRuntime({game,onExit}){
 
   const animate=now=>{
    raf=requestAnimationFrame(animate);
-   const dt=Math.min(.033,(now-last)/1000);last=now;
+   const dt=Math.min(.033,(now-last)/1000);last=now;\n   if(pausedRef.current){renderer.render(scene3,camera);return}
    const k=keysRef.current;
    const mx=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+touchRef.current.x));
    const mz=Math.max(-1,Math.min(1,(k.KeyS?1:0)-(k.KeyW?1:0)+touchRef.current.z));
@@ -258,16 +258,31 @@ function GameRuntime({game,onExit}){
    jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});
   };
  },[]);
- return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div className="runtime-crosshair">+</div><div className="runtime-hint">WASD / joystick · mouse / touch look · SPACE / jump · SHIFT run</div><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><button type="button" className="runtime-exit" onClick={onExit}>EXIT</button></div>
+ const[menuOpen,setMenuOpen]=useState(false);
+ const toggleMenu=()=>{setMenuOpen(v=>{pausedRef.current=!v;return !v})};
+ const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
+ return <div ref={runtimeRef} className="game-runtime">
+  <div ref={hostRef} className="game-runtime-canvas"/>
+  <div className="touch-look-zone" data-look aria-hidden="true"/>
+  <div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div>
+  <button type="button" className="touch-jump" data-jump>JUMP</button>
+  <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span>E</span></button>
+  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label="Game menu">
+   <button type="button" onClick={continueGame}>Continuar</button>
+   <button type="button" onClick={onRestart}>Reiniciar</button>
+   <button type="button" onClick={onExit}>Salir</button>
+  </div>}
+ </div>
 }
 function Play(){
  const[,t]=useLang();const{id}=useParams();const[games]=useGames();const game=games.find(g=>String(g.id)===id)||null;
  const[started,setStarted]=useState(false);
+ const[gameRunKey,setGameRunKey]=useState(0);
  useEffect(()=>{if(started){localStorage.setItem("eskadin-stat-sessions",String(Number(localStorage.getItem("eskadin-stat-sessions")||0)+1));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.play){p.play=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+8))}}},[started]);
  if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay ningún juego para jugar.</h2><Link className="button button-primary" to="/games">{t.explore}</Link></div></main>;
  const launch=async()=>{try{const el=document.documentElement;if(!document.fullscreenElement){if(el.requestFullscreen)await el.requestFullscreen({navigationUI:"hide"});else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen()}}catch{}setStarted(true)};
  const exit=async()=>{try{if(document.fullscreenElement&&document.exitFullscreen)await document.exitFullscreen()}catch{}setStarted(false)};
- if(started)return <main className="page play-full"><GameRuntime game={game} onExit={exit}/></main>;
+ if(started)return <main className="page play-full"><GameRuntime key={gameRunKey} game={game} onExit={exit} onRestart={()=>setGameRunKey(k=>k+1)}/></main>;
  return <main className="page play"><div className="playbar"><Link to={"/games/"+game.id}>← {t.back}</Link><b>{game.title}</b><span>READY</span></div><div className="game-viewport"><div className="launch-card"><span>PLAYABLE GAME</span><h2>{game.title}</h2><p>{game.description}</p><button className="button button-primary" onClick={launch}>▶ {t.play} · FULLSCREEN</button></div></div></main>
 }
 
