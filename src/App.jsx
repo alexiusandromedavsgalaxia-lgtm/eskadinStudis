@@ -16,14 +16,10 @@ const copy = {
   fr: { explore:"Explorer", create:"Créer", developer:"Développeur", account:"Compte", start:"Commencer", hero:"Crée. Publie. Joue.", sub:"Un espace pour créer des jeux 3D, les publier et jouer sans pubs ni achats intégrés.", make:"Créer un jeu", discover:"Explorer les jeux", editorKicker:"CRÉER SANS SE BATTRE AVEC L'ÉDITEUR", editorTitle:"Ton idée d'abord. Le code ensuite.", editorText:"Place objets, lumières, sons et logique dans une interface pensée pour créer vite.", catalog:"CATALOGUE", catalogTitle:"Jeux de la communauté", catalogText:"Découvre des expériences, joue et garde tes préférées.", newGame:"Nouveau jeu", play:"Jouer", like:"J'aime", liked:"Aimé", back:"Retour", publish:"Publier", stats:"Statistiques", save:"Enregistrer", language:"Langue", objects:"OBJETS", properties:"PROPRIÉTÉS", wall:"Mur", block:"Bloc", light:"Lumière", sound:"Son", spawn:"Spawn", objectName:"Nom", position:"Position", scale:"Échelle", drag:"Glisse les objets ici", free:"Publier gratuitement", public:"Public", private:"Privé", noMoney:"Aucun paiement réel", footer:"Conçu pour créer. Pensé pour jouer.", login:"Se connecter", register:"Créer un compte" }
 };
 
-function useLang(){
-  const [lang,setLang]=useState(()=>localStorage.getItem("eskadin-lang")||"es");
-  useEffect(()=>localStorage.setItem("eskadin-lang",lang),[lang]);
-  return [lang,copy[lang]];
-}
-
 function Layout({children}){
-  const [lang,t]=useLang();
+  const [lang,setLang]=useState(()=>localStorage.getItem("eskadin-lang")||"es");
+  const t=copy[lang];
+  useEffect(()=>localStorage.setItem("eskadin-lang",lang),[lang]);
   return <div className="app-shell">
     <div className="wrap">
       <nav className="nav">
@@ -35,7 +31,7 @@ function Layout({children}){
           <NavLink to="/account">{t.account}</NavLink>
         </div>
         <div className="nav-actions">
-          <select className="lang" aria-label={t.language} value={lang} onChange={e=>window.dispatchEvent(new CustomEvent("eskadin-lang",{detail:e.target.value}))}>
+          <select className="lang" aria-label={t.language} value={lang} onChange={e=>{setLang(e.target.value);window.dispatchEvent(new CustomEvent("eskadin-lang",{detail:e.target.value}))}}>
             <option value="es">ES</option><option value="en">EN</option><option value="sv">SV</option><option value="de">DE</option><option value="fr">FR</option>
           </select>
           <Link className="button button-primary small" to="/editor">{t.start}</Link>
