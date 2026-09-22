@@ -50,7 +50,130 @@ function Home(){const[,t]=useLang();return <main><section className="hero"><div 
 function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useState("");const filtered=useMemo(()=>games.filter(g=>(g.title+" "+g.genre+" "+g.author).toLowerCase().includes(q.toLowerCase())),[games,q]);return <main className="page"><div className="page-head"><div><div className="eyebrow">{t.explore}</div><h1 className="page-title">{t.communityGames}</h1></div><Link className="button button-primary" to="/editor">{t.newGame}</Link></div><div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder={t.search}/></div><div className="games-grid">{filtered.map(g=><Link className="game-card" to={"/games/"+g.id} key={g.id}><div className={"game-cover "+g.color}><span>{g.tag}</span></div><div className="game-info"><h3>{g.title}</h3><p>{g.genre} · {g.author}</p><b>♥ {g.likes.toLocaleString()} · {g.players.toLocaleString()} online</b></div></Link>)}</div></main>}
 
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
-function Play(){const[,t]=useLang();const{id}=useParams();const[games]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[started,setStarted]=useState(false);useEffect(()=>{if(started){localStorage.setItem("eskadin-stat-sessions",String(Number(localStorage.getItem("eskadin-stat-sessions")||0)+1));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.play){p.play=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+8))}}},[started]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay ningún juego para jugar.</h2><Link className="button button-primary" to="/games">{t.explore}</Link></div></main>;return <main className="page play"><div className="playbar"><Link to={"/games/"+game.id}>← {t.back}</Link><b>{game.title}</b><span>{started?"LIVE":"READY"}</span></div><div className="game-viewport">{started?<div className="play-message"><strong>ESKÅDIN RUNTIME</strong><small>Scene loaded · session active</small></div>:<div className="launch-card"><span>PLAYABLE PREVIEW</span><h2>{game.title}</h2><p>{game.description}</p><button className="button button-primary" onClick={()=>setStarted(true)}>▶ {t.play}</button></div>}</div></main>}
+function GameRuntime({game,onExit}){
+ const hostRef=useRef(null);
+ const keysRef=useRef({});
+ const touchRef=useRef({x:0,z:0});
+ const lookRef=useRef({active:false,lastX:0,lastY:0});
+ const jumpRef=useRef(false);
+ useEffect(()=>{
+  const host=hostRef.current;if(!host)return;
+  const scene3=new THREE.Scene();
+  scene3.background=new THREE.Color(0x101722);
+  scene3.fog=new THREE.Fog(0x101722,18,70);
+  const camera=new THREE.PerspectiveCamera(70,1,.05,120);
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.domElement.style.cssText="width:100%;height:100%;display:block;touch-action:none";
+  host.replaceChildren(renderer.domElement);
+
+  scene3.add(new THREE.HemisphereLight(0xd9ecff,0x17202e,1.8));
+  const sun=new THREE.DirectionalLight(0xffffff,2.5);sun.position.set(8,14,6);sun.castShadow=true;scene3.add(sun);
+
+  const project=read("eskadin-project",null);
+  const source=Array.isArray(project?.scene)&&project.scene.length?project.scene:[];
+  const world=[];
+  source.forEach(o=>{
+   const m=meshFor(o);m.userData.runtimeType=o.type;scene3.add(m);world.push(m);
+  });
+  if(!world.length){
+   const floor=new THREE.Mesh(new THREE.BoxGeometry(36,.4,36),new THREE.MeshStandardMaterial({color:0x273242,roughness:.9}));
+   floor.position.y=-.2;floor.receiveShadow=true;scene3.add(floor);world.push(floor);
+   for(let i=0;i<8;i++){
+    const box=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshStandardMaterial({color:0x53657d,roughness:.7}));
+    box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box);
+   }
+  }
+  const floorY=source.length?Math.max(0,...source.filter(o=>["floor","plane","wall"].includes(o.type)).map(o=>Number(o.y)||0)):0;
+
+  const player=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.35,.9,8,16),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
+  body.position.y=1;body.castShadow=true;player.add(body);
+  const visor=new THREE.Mesh(new THREE.SphereGeometry(.19,16,12),new THREE.MeshStandardMaterial({color:0x17202e,metalness:.5,roughness:.25}));
+  visor.position.set(0,1.25,-.28);player.add(visor);
+  player.position.set(0,floorY+0.02,4);scene3.add(player);
+
+  const velocity=new THREE.Vector3();
+  const forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
+  let yaw=0,pitch=-.18,last=performance.now(),raf=0;
+  const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
+  const keyup=e=>{keysRef.current[e.code]=false};
+  window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
+
+  const bindPointer=()=>{
+   lookRef.current.active=true;
+   lookRef.current.lastX=0;lookRef.current.lastY=0;
+   renderer.domElement.setPointerCapture?.(event.pointerId);
+  };
+  const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current.active=true;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;renderer.domElement.setPointerCapture?.(e.pointerId)}};
+  const pointerMove=e=>{
+   if(!lookRef.current.active)return;
+   const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
+   lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
+   yaw-=dx*.004;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.003));
+  };
+  const pointerUp=e=>{if(e.pointerType==="mouse")lookRef.current.active=false};
+  renderer.domElement.addEventListener("pointerdown",pointerDown);
+  renderer.domElement.addEventListener("pointermove",pointerMove);
+  renderer.domElement.addEventListener("pointerup",pointerUp);
+  renderer.domElement.addEventListener("pointercancel",pointerUp);
+
+  const onTouchMove=e=>{
+   const t=e.touches?.[0];if(!t)return;
+   const r=renderer.domElement.getBoundingClientRect();
+   if(t.clientX<r.left+r.width*.45){
+    const cx=r.left+82,cy=r.top+r.height-92;
+    touchRef.current.x=Math.max(-1,Math.min(1,(t.clientX-cx)/58));
+    touchRef.current.z=Math.max(-1,Math.min(1,(t.clientY-cy)/58));
+   }
+   e.preventDefault();
+  };
+  renderer.domElement.addEventListener("touchmove",onTouchMove,{passive:false});
+  const onTouchEnd=()=>{touchRef.current.x=0;touchRef.current.z=0};
+  renderer.domElement.addEventListener("touchend",onTouchEnd);
+  const onJump=()=>{jumpRef.current=true};
+  const jumpButton=host.querySelector("[data-jump]");
+  jumpButton?.addEventListener("pointerdown",onJump);
+
+  const resize=()=>{const w=Math.max(320,host.clientWidth),h=Math.max(320,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
+  const ro=new ResizeObserver(resize);ro.observe(host);resize();
+
+  const animate=now=>{
+   raf=requestAnimationFrame(animate);
+   const dt=Math.min(.033,(now-last)/1000);last=now;
+   const k=keysRef.current;
+   const mx=(k.KeyD?1:0)-(k.KeyA?1:0)+(touchRef.current.x);
+   const mz=(k.KeyS?1:0)-(k.KeyW?1:0)+(touchRef.current.z);
+   move.set(mx,0,mz);if(move.lengthSq()>1)move.normalize();
+   forward.set(Math.sin(yaw),0,Math.cos(yaw));right.set(Math.cos(yaw),0,-Math.sin(yaw));
+   const dir=new THREE.Vector3().addScaledVector(right,move.x).addScaledVector(forward,move.z);
+   const speed=k.ShiftLeft||k.ShiftRight?6.5:4.2;
+   player.position.addScaledVector(dir,speed*dt);
+   velocity.y-=18*dt;player.position.y+=velocity.y*dt;
+   const grounded=player.position.y<=floorY+.02;
+   if(grounded){player.position.y=floorY+.02;velocity.y=0}
+   if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7;jumpRef.current=false}
+   player.rotation.y=yaw;
+   camera.position.set(player.position.x,player.position.y+1.25,player.position.z);
+   camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
+   renderer.render(scene3,camera);
+  };
+  raf=requestAnimationFrame(animate);
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);renderer.domElement.removeEventListener("touchmove",onTouchMove);renderer.domElement.removeEventListener("touchend",onTouchEnd);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+ },[]);
+ return <div className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="runtime-crosshair">+</div><div className="runtime-hint">WASD / joystick · mouse / touch look · SPACE / jump · SHIFT run</div><div className="touch-stick"><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><button type="button" className="runtime-exit" onClick={onExit}>EXIT</button></div>
+}
+
+function Play(){
+ const[,t]=useLang();const{id}=useParams();const[games]=useGames();const game=games.find(g=>String(g.id)===id)||null;
+ const[started,setStarted]=useState(false);
+ useEffect(()=>{if(started){localStorage.setItem("eskadin-stat-sessions",String(Number(localStorage.getItem("eskadin-stat-sessions")||0)+1));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.play){p.play=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+8))}}},[started]);
+ if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay ningún juego para jugar.</h2><Link className="button button-primary" to="/games">{t.explore}</Link></div></main>;
+ if(started)return <main className="page play-full"><GameRuntime game={game} onExit={()=>setStarted(false)}/></main>;
+ return <main className="page play"><div className="playbar"><Link to={"/games/"+game.id}>← {t.back}</Link><b>{game.title}</b><span>READY</span></div><div className="game-viewport"><div className="launch-card"><span>PLAYABLE GAME</span><h2>{game.title}</h2><p>{game.description}</p><button className="button button-primary" onClick={()=>setStarted(true)}>▶ {t.play}</button></div></div></main>
+}
 
 const sceneSeed=[{id:1,type:"wall",name:"Wall 01",x:0,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:2,type:"cube",name:"Cube 02",x:2,y:0,z:0,rx:0,ry:0,rz:0,s:1},{id:3,type:"light",name:"Light 03",x:0,y:3,z:2,rx:0,ry:0,rz:0,s:1}];
 
