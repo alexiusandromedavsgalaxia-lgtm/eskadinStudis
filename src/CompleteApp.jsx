@@ -58,7 +58,8 @@ function GameRuntime({game,onExit,onRestart}){
  const keysRef=useRef({});
  const touchRef=useRef({x:0,z:0,active:false,id:null});
  const lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
- const jumpRef=useRef(false);\n const pausedRef=useRef(false);
+ const jumpRef=useRef(false);
+ const pausedRef=useRef(false);
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
   const runtime=runtimeRef.current;
@@ -226,7 +227,8 @@ function GameRuntime({game,onExit,onRestart}){
 
   const animate=now=>{
    raf=requestAnimationFrame(animate);
-   const dt=Math.min(.033,(now-last)/1000);last=now;\n   if(pausedRef.current){renderer.render(scene3,camera);return}
+   const dt=Math.min(.033,(now-last)/1000);last=now;
+   if(pausedRef.current){renderer.render(scene3,camera);return}
    const k=keysRef.current;
    const mx=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+touchRef.current.x));
    const mz=Math.max(-1,Math.min(1,(k.KeyS?1:0)-(k.KeyW?1:0)+touchRef.current.z));
