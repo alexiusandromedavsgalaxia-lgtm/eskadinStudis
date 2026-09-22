@@ -454,3 +454,14 @@ body:has(.editor-page) .nav{padding:0 24px}
 .touch-stick{position:absolute;left:24px;bottom:24px;width:116px;height:116px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(10,14,20,.38);display:grid;place-items:center;color:#8792a2;font:800 9px ui-monospace,monospace;pointer-events:none}
 .touch-jump{position:absolute;right:26px;bottom:28px;width:82px;height:82px;border-radius:50%;border:1px solid rgba(184,255,90,.35);background:rgba(184,255,90,.12);color:#dfffb9;font:900 10px ui-monospace,monospace;touch-action:manipulation}
 @media(max-width:700px){.game-runtime{min-height:calc(100vh - 52px)}.runtime-hint{bottom:9px;font-size:7px;max-width:72%;text-align:center;white-space:normal}.runtime-exit{top:9px;right:9px}.touch-stick{left:16px;bottom:20px}.touch-jump{right:18px;bottom:22px}}
+
+/* studio is a standalone workspace: no global topbar */
+.studio-app{height:100vh;min-height:100vh}
+.studio-app .footer{display:none}
+.studio-nav-actions a{min-width:0;border:1px solid var(--line);background:#151a23;color:#aeb7c5;border-radius:7px;padding:8px 7px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;text-align:left}
+.studio-nav-actions a:hover{color:var(--accent);border-color:rgba(184,255,90,.35);background:rgba(184,255,90,.06)}
+.studio-language{width:100%;border:1px solid var(--line);background:#151a23;color:#d5dbe4;border-radius:7px;padding:8px 7px;font:700 9px ui-monospace,monospace;outline:none}
+.studio-language:focus{border-color:rgba(184,255,90,.45)}
+/* old editor topbar rules are intentionally neutralized */
+.editor-topbar,.editor-topbar-clean{display:none!important}
+@media(max-width:800px){.studio-app{height:100vh;min-height:100vh}.studio-nav-actions{grid-template-columns:1fr 1fr}.studio-language{font-size:8px}}
