@@ -47,7 +47,7 @@ function useUser(){return useContext(AuthContext)}
 function AuthProvider({children}){const[user,setUser]=useState(()=>read("eskadin-user",null));const[developer,setDeveloper]=useState(()=>read("eskadin-developer",null));const login=u=>{setUser(u);save("eskadin-user",u)};const logout=()=>{setUser(null);localStorage.removeItem("eskadin-user")};const devLogin=u=>{setDeveloper(u);save("eskadin-developer",u)};const devLogout=()=>{setDeveloper(null);localStorage.removeItem("eskadin-developer")};return <AuthContext.Provider value={{user,developer,login,logout,devLogin,devLogout}}>{children}</AuthContext.Provider>}
 function useGames(){const[games,setGames]=useState(()=>{if(localStorage.getItem("eskadin-games-version")!==CATALOG_VERSION){localStorage.setItem("eskadin-games-version",CATALOG_VERSION);localStorage.removeItem("eskadin-games");return seed}return read("eskadin-games",seed)});useEffect(()=>save("eskadin-games",games),[games]);return[games,setGames]}
 
-function Shell({children}){const[lang,t]=useLang();const{setLang}=useContext(LangContext);const{user,developer}=useUser();const location=useLocation();const[menuOpen,setMenuOpen]=useState(false);useEffect(()=>setMenuOpen(false),[location.pathname]);if(location.pathname==="/editor")return <div className="app-shell studio-app">{children}</div>;return <div className="app-shell"><div className="wrap"><header className="nav"><button type="button" className="global-menu-button" aria-label={t.menu} aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}>{menuOpen?"×":"☰"}</button></header>{menuOpen&&<button type="button" className="global-sidebar-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}<aside className={"global-sidebar "+(menuOpen?"open":"")} aria-hidden={!menuOpen}><nav className="global-sidebar-links"><NavLink to="/games" onClick={()=>setMenuOpen(false)}>{t.explore}</NavLink><NavLink to="/chat" onClick={()=>setMenuOpen(false)}>{t.chat}</NavLink><NavLink to="/editor" onClick={()=>setMenuOpen(false)}>{t.create}</NavLink><NavLink to="/missions" onClick={()=>setMenuOpen(false)}>{t.missions}</NavLink><NavLink to="/developer" onClick={()=>setMenuOpen(false)}>{t.developer}</NavLink></nav><div className="global-sidebar-section">{t.language}</div><select className="lang global-sidebar-lang" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><div className="global-sidebar-account">{developer?<Link className="avatar-link dev-avatar" to="/developer/account" onClick={()=>setMenuOpen(false)}>DEV</Link>:user?<Link className="account-menu-link" to="/account" onClick={()=>setMenuOpen(false)}>{user.name.slice(0,2).toUpperCase()} · {user.name}</Link>:<><Link className="button button-ghost small" to="/register" onClick={()=>setMenuOpen(false)}>{t.register}</Link><Link className="button button-primary small" to="/login" onClick={()=>setMenuOpen(false)}>{t.login}</Link></>}</div></aside>{children}<footer className="footer"><span>© 2026 Eskådin Stüdis®</span><span>0 ads · 0 real-money purchases · F¢ gameplay-only</span></footer></div></div>}
+function Shell({children}){const[lang,t]=useLang();const{setLang}=useContext(LangContext);const{user,developer}=useUser();const location=useLocation();const[menuOpen,setMenuOpen]=useState(false);useEffect(()=>setMenuOpen(false),[location.pathname]);if(location.pathname==="/editor")return <div className="app-shell studio-app">{children}</div>;return <div className="app-shell"><div className="wrap"><header className="nav"><button type="button" className="global-menu-button" aria-label={t.menu} aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}>{menuOpen?"×":"☰"}</button></header>{menuOpen&&<button type="button" className="global-sidebar-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}<aside className={"global-sidebar "+(menuOpen?"open":"")} aria-hidden={!menuOpen}><nav className="global-sidebar-links"><NavLink to="/games" onClick={()=>setMenuOpen(false)}>{t.explore}</NavLink><NavLink to="/editor" onClick={()=>setMenuOpen(false)}>{t.create}</NavLink><NavLink to="/missions" onClick={()=>setMenuOpen(false)}>{t.missions}</NavLink><NavLink to="/developer" onClick={()=>setMenuOpen(false)}>{t.developer}</NavLink></nav><div className="global-sidebar-section">{t.language}</div><select className="lang global-sidebar-lang" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><div className="global-sidebar-account">{developer?<Link className="avatar-link dev-avatar" to="/developer/account" onClick={()=>setMenuOpen(false)}>DEV</Link>:user?<Link className="account-menu-link" to="/account" onClick={()=>setMenuOpen(false)}>{user.name.slice(0,2).toUpperCase()} · {user.name}</Link>:<><Link className="button button-ghost small" to="/register" onClick={()=>setMenuOpen(false)}>{t.register}</Link><Link className="button button-primary small" to="/login" onClick={()=>setMenuOpen(false)}>{t.login}</Link></>}</div></aside>{children}<footer className="footer"><span>© 2026 Eskådin Stüdis®</span><span>0 ads · 0 real-money purchases · F¢ gameplay-only</span></footer></div></div>}
 function Avatar({user,size="md"}){
  const u=user||{};
  const skin=u.skin||"#f2c7a5",shirt=u.shirt||"#5b7cff",pants=u.pants||"#202638",hair=u.hair||"#241b18",hat=u.hat||"none";
@@ -77,6 +77,37 @@ function Home(){const[,t]=useLang();return <main><section className="hero"><div 
 function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useState("");const filtered=useMemo(()=>games.filter(g=>(g.title+" "+g.genre+" "+g.author).toLowerCase().includes(q.toLowerCase())),[games,q]);return <main className="page"><div className="page-head"><div><div className="eyebrow">{t.explore}</div><h1 className="page-title">{t.communityGames}</h1></div><Link className="button button-primary" to="/editor">{t.newGame}</Link></div><div className="toolbar"><input value={q} onChange={e=>setQ(e.target.value)} placeholder={t.search}/></div><div className="games-grid">{filtered.map(g=><Link className="game-card" to={"/games/"+g.id} key={g.id}><div className={"game-cover "+g.color}><span>{g.tag}</span></div><div className="game-info"><h3>{g.title}</h3><p>{g.genre} · {g.author}</p><b>♥ {g.likes.toLocaleString()} · {g.players.toLocaleString()} online</b></div></Link>)}</div></main>}
 
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
+function createEskadinR15Avatar(user={}){
+ const root=new THREE.Group();
+ const skin=new THREE.MeshStandardMaterial({color:user.skin||0xf2c7a5,roughness:.75});
+ const shirt=new THREE.MeshStandardMaterial({color:user.shirt||0x5b7cff,roughness:.7});
+ const pants=new THREE.MeshStandardMaterial({color:user.pants||0x202638,roughness:.75});
+ const make=(name,geo,mat,pos)=>{const m=new THREE.Mesh(geo,mat);m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;root.add(m);return m};
+ const box=(name,size,mat,pos)=>make(name,new THREE.BoxGeometry(...size),mat,pos);
+ // 15 articulated body parts, with original Eskådin geometry/materials.
+ box("Head",[.62,.62,.62],skin,[0,2.48,0]);
+ box("UpperTorso",[1.02,.72,.52],shirt,[0,1.93,0]);
+ box("LowerTorso",[.9,.58,.48],shirt,[0,1.28,0]);
+ box("LeftUpperArm",[.34,.52,.38],shirt,[-.68,2.02,0]);
+ box("LeftLowerArm",[.3,.52,.34],skin,[-.68,1.49,0]);
+ box("LeftHand",[.32,.3,.32],skin,[-.68,1.08,0]);
+ box("RightUpperArm",[.34,.52,.38],shirt,[.68,2.02,0]);
+ box("RightLowerArm",[.3,.52,.34],skin,[.68,1.49,0]);
+ box("RightHand",[.32,.3,.32],skin,[.68,1.08,0]);
+ box("LeftUpperLeg",[.42,.58,.44],pants,[-.27,.87,0]);
+ box("LeftLowerLeg",[.38,.58,.4],pants,[-.27,.29,0]);
+ box("LeftFoot",[.42,.22,.62],pants,[-.27,.0,-.09]);
+ box("RightUpperLeg",[.42,.58,.44],pants,[.27,.87,0]);
+ box("RightLowerLeg",[.38,.58,.4],pants,[.27,.29,0]);
+ box("RightFoot",[.42,.22,.62],pants,[.27,.0,-.09]);
+ if(user.hat==="cap"){
+  const cap=make("Cap",new THREE.BoxGeometry(.7,.18,.7),shirt,[0,2.86,0]);
+  cap.castShadow=true;
+ }
+ root.userData.avatarParts=15;
+ return root;
+}
+
 function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const hostRef=useRef(null);
  const runtimeRef=useRef(null);
@@ -138,10 +169,10 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   }
   const fallbackFloor=source.length?0:0;
 
-  const player=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(playerRadius,playerHeight-2*playerRadius,10,18),new THREE.MeshStandardMaterial({color:0xb8ff5a,roughness:.6}));
-  body.position.y=playerHeight*.5;body.castShadow=true;player.add(body);
-  player.position.set(0,floorY,4);scene3.add(player);
+  const player=createEskadinR15Avatar(read("eskadin-user",{}));
+  player.position.set(0,floorY,4);
+  player.scale.setScalar(.78);
+  scene3.add(player);
 
   const velocity=new THREE.Vector3();
   const playerBox=new THREE.Box3();
@@ -309,6 +340,15 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   <div className="touch-look-zone" data-look aria-hidden="true"/>
   <div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div>
   <button type="button" className="touch-jump" data-jump>JUMP</button>
+  <button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>{setChatOpen(v=>!v);setMenuOpen(false)}}>💬</button>
+  {chatOpen&&<div className="runtime-chat-panel">
+   <div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div>
+   <div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div>
+   <form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save("eskadin-experience-chat",next);setChatText("")}}>
+    <input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/>
+    <button type="submit">➤</button>
+   </form>
+  </div>}
   <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button>
   {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}>
    <button type="button" onClick={continueGame}>{t.continueGame}</button>
@@ -624,4 +664,4 @@ function DeleteAccount(){const[,t]=useLang();const{logout}=useUser();const nav=u
 
 function NotFound(){const[,t]=useLang();return <main className="page notfound"><h1>404</h1><p>{t.pageEscaped}</p><Link className="button button-primary" to="/">{t.home}</Link></main>}
 
-export default function CompleteApp(){return <LangProvider><AuthProvider><Shell><Routes><Route path="/" element={<Register/>}/><Route path="/home" element={<Home/>}/><Route path="/games" element={<Games/>}/><Route path="/chat" element={<Chat/>}/><Route path="/games/:id" element={<Game/>}/><Route path="/games/:id/play" element={<Play/>}/><Route path="/editor" element={<Editor/>}/><Route path="/developer" element={<Developer/>}/><Route path="/projects" element={<Projects/>}/><Route path="/publish" element={<Publish/>}/><Route path="/missions" element={<Missions/>}/><Route path="/wallet" element={<Wallet/>}/><Route path="/statistics" element={<Statistics/>}/><Route path="/account" element={<Account/>}/><Route path="/settings" element={<Settings/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/developer/register" element={<DeveloperRegister/>}/><Route path="/developer/account" element={<DeveloperAccount/>}/><Route path="/account/delete" element={<DeleteAccount/>}/><Route path="*" element={<NotFound/>}/></Routes></Shell></AuthProvider></LangProvider>}
+export default function CompleteApp(){return <LangProvider><AuthProvider><Shell><Routes><Route path="/" element={<Register/>}/><Route path="/home" element={<Home/>}/><Route path="/games" element={<Games/>}/><Route path="/games/:id" element={<Game/>}/><Route path="/games/:id/play" element={<Play/>}/><Route path="/editor" element={<Editor/>}/><Route path="/developer" element={<Developer/>}/><Route path="/projects" element={<Projects/>}/><Route path="/publish" element={<Publish/>}/><Route path="/missions" element={<Missions/>}/><Route path="/wallet" element={<Wallet/>}/><Route path="/statistics" element={<Statistics/>}/><Route path="/account" element={<Account/>}/><Route path="/settings" element={<Settings/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/developer/register" element={<DeveloperRegister/>}/><Route path="/developer/account" element={<DeveloperAccount/>}/><Route path="/account/delete" element={<DeleteAccount/>}/><Route path="*" element={<NotFound/>}/></Routes></Shell></AuthProvider></LangProvider>}
