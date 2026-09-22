@@ -845,3 +845,13 @@ body:has(.editor-page) .nav{padding:0 24px}
 @media(hover:hover){
   .studio-sidebar-actions button:hover,.studio-sidebar-actions a:hover,.studio-tool-grid button:hover,.studio-view-grid button:hover,.studio-quick-actions button:hover,.studio-bottom-actions button:hover,.studio-object-grid button:hover,.studio-scene-list button:hover{filter:brightness(1.12)}
 }
+
+/* Minimal in-game HUD: only the Eskådin Stüdis menu remains visible. */
+.game-runtime{position:relative;background:#000;overflow:hidden}
+.game-runtime-canvas{position:absolute;inset:0}
+.runtime-menu-button{position:absolute;top:18px;right:18px;width:58px;height:58px;border-radius:50%;border:1px solid rgba(255,255,255,.32);background:rgba(10,14,20,.82);color:#fff;display:grid;place-items:center;font-size:25px;font-weight:900;z-index:30;box-shadow:0 8px 28px rgba(0,0,0,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);touch-action:manipulation}
+.runtime-menu-button span{display:grid;place-items:center;width:39px;height:39px;border-radius:50%;border:2px solid currentColor;font-size:21px;line-height:1}
+.runtime-pause-menu{position:absolute;top:88px;right:18px;z-index:29;display:flex;flex-direction:column;gap:9px;width:min(190px,calc(100vw - 36px));padding:12px;border-radius:18px;background:rgba(8,11,17,.9);border:1px solid rgba(255,255,255,.16);box-shadow:0 16px 45px rgba(0,0,0,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.runtime-pause-menu button{min-height:48px;border:0;border-radius:12px;background:rgba(255,255,255,.09);color:#fff;font-size:15px;font-weight:700;touch-action:manipulation}
+.runtime-pause-menu button:active{transform:scale(.98);background:rgba(255,255,255,.16)}
+@media(max-width:620px){.runtime-menu-button{top:12px;right:12px;width:54px;height:54px}.runtime-pause-menu{top:76px;right:12px;width:min(210px,calc(100vw - 24px))}}
