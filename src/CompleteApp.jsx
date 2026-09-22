@@ -79,32 +79,22 @@ function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useSt
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
 function createEskadinR15Avatar(user={}){
  const root=new THREE.Group();
- const skin=new THREE.MeshStandardMaterial({color:user.skin||0xf2c7a5,roughness:.75});
- const shirt=new THREE.MeshStandardMaterial({color:user.shirt||0x5b7cff,roughness:.7});
- const pants=new THREE.MeshStandardMaterial({color:user.pants||0x202638,roughness:.75});
- const make=(name,geo,mat,pos)=>{const m=new THREE.Mesh(geo,mat);m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;root.add(m);return m};
- const box=(name,size,mat,pos)=>make(name,new THREE.BoxGeometry(...size),mat,pos);
- // 15 articulated body parts, with original Eskådin geometry/materials.
- box("Head",[.62,.62,.62],skin,[0,2.48,0]);
- box("UpperTorso",[1.02,.72,.52],shirt,[0,1.93,0]);
- box("LowerTorso",[.9,.58,.48],shirt,[0,1.28,0]);
- box("LeftUpperArm",[.34,.52,.38],shirt,[-.68,2.02,0]);
- box("LeftLowerArm",[.3,.52,.34],skin,[-.68,1.49,0]);
- box("LeftHand",[.32,.3,.32],skin,[-.68,1.08,0]);
- box("RightUpperArm",[.34,.52,.38],shirt,[.68,2.02,0]);
- box("RightLowerArm",[.3,.52,.34],skin,[.68,1.49,0]);
- box("RightHand",[.32,.3,.32],skin,[.68,1.08,0]);
- box("LeftUpperLeg",[.42,.58,.44],pants,[-.27,.87,0]);
- box("LeftLowerLeg",[.38,.58,.4],pants,[-.27,.29,0]);
- box("LeftFoot",[.42,.22,.62],pants,[-.27,.0,-.09]);
- box("RightUpperLeg",[.42,.58,.44],pants,[.27,.87,0]);
- box("RightLowerLeg",[.38,.58,.4],pants,[.27,.29,0]);
- box("RightFoot",[.42,.22,.62],pants,[.27,.0,-.09]);
- if(user.hat==="cap"){
-  const cap=make("Cap",new THREE.BoxGeometry(.7,.18,.7),shirt,[0,2.86,0]);
-  cap.castShadow=true;
- }
+ const skin=new THREE.MeshStandardMaterial({color:user.skin||0xf2c7a5,roughness:.8});
+ const shirt=new THREE.MeshStandardMaterial({color:user.shirt||0x5b7cff,roughness:.72});
+ const pants=new THREE.MeshStandardMaterial({color:user.pants||0x202638,roughness:.8});
+ const limb=(name,w,h,d,mat,x,y,z)=>{const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);g.name=name;g.position.set(x,y,z);g.castShadow=true;g.receiveShadow=true;root.add(g);return g};
+ // Feet touch y=0. Body is compact and proportioned to a human-like R15 silhouette.
+ limb("LeftFoot",.48,.22,.78,pants,-.27,.11,-.10); limb("RightFoot",.48,.22,.78,pants,.27,.11,-.10);
+ limb("LeftLowerLeg",.40,.55,.42,pants,-.27,.495,0); limb("RightLowerLeg",.40,.55,.42,pants,.27,.495,0);
+ limb("LeftUpperLeg",.44,.62,.44,pants,-.27,1.075,0); limb("RightUpperLeg",.44,.62,.44,pants,.27,1.075,0);
+ limb("LowerTorso",.90,.48,.48,shirt,0,1.55,0); limb("UpperTorso",1.04,.68,.52,shirt,0,2.10,0);
+ limb("LeftUpperArm",.36,.54,.40,shirt,-.70,2.10,0); limb("RightUpperArm",.36,.54,.40,shirt,.70,2.10,0);
+ limb("LeftLowerArm",.32,.48,.36,skin,-.70,1.59,0); limb("RightLowerArm",.32,.48,.36,skin,.70,1.59,0);
+ limb("LeftHand",.34,.28,.34,skin,-.70,1.21,0); limb("RightHand",.34,.28,.34,skin,.70,1.21,0);
+ limb("Head",.66,.62,.66,skin,0,2.82,0);
+ if(user.hat==="cap")limb("Cap",.74,.16,.74,shirt,0,3.21,0);
  root.userData.avatarParts=15;
+ root.userData.height=3.13;
  return root;
 }
 
@@ -171,7 +161,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
 
   const player=createEskadinR15Avatar(read("eskadin-user",{}));
   player.position.set(0,floorY,4);
-  player.scale.setScalar(.78);
+  player.scale.setScalar(.61);
   scene3.add(player);
 
   const velocity=new THREE.Vector3();
