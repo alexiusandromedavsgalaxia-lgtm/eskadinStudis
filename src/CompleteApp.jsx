@@ -348,6 +348,7 @@ function useStudioFullscreenLock(){
 }
 function Editor(){useStudioFullscreenLock();
  const[,t]=useLang();
+ const[sidebarOpen,setSidebarOpen]=useState(false);
  const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));
  const[selected,setSelected]=useState(1);
  const[tool,setTool]=useState("select");
@@ -380,8 +381,11 @@ function Editor(){useStudioFullscreenLock();
  useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
  const groups={create:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"]],scene:[["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]]};
  return <main className="page editor-page">
-  <div className="editor-shell">
-   <aside className="studio-sidebar">
+  <button type="button" className="studio-menu-button" aria-label={t.add} onClick={()=>setSidebarOpen(v=>!v)}>{sidebarOpen?"×":"☰"}</button>
+  {sidebarOpen&&<button type="button" className="studio-sidebar-backdrop" aria-label="Close menu" onClick={()=>setSidebarOpen(false)}/>} 
+  <div className={"editor-shell "+(sidebarOpen?"sidebar-open":"")}>
+
+   <aside className="studio-sidebar" aria-hidden={!sidebarOpen}>
     <div className="studio-sidebar-head"><div className="studio-sidebar-brand">Eskådin<br/><span>Stüdis</span></div><strong className="studio-project-side">Untitled project</strong></div><div className="studio-sidebar-actions studio-nav-actions"><Link to="/">⌂ {t.back}</Link><Link to="/games">▶ {t.explore}</Link></div><div className="studio-sidebar-section">{t.language}</div><select className="studio-language" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
     <div className="studio-sidebar-actions">
      <button onClick={()=>setPanel("create")}>＋ {t.add}</button><button onClick={()=>setPanel("scene")}>☷ {t.hierarchy}</button><button onClick={()=>setPanel("create")}>▣ {t.assets}</button><button onClick={()=>setPanel("scene")}>◉ {t.scene}</button>
@@ -406,12 +410,8 @@ function Editor(){useStudioFullscreenLock();
      <button onClick={toggleFullscreen}>⛶ {t.fullscreen}</button><button onClick={saveScene}>✓ {saved?t.save:t.save}</button><Link className="studio-publish" to="/publish">↗ {t.publish}</Link>
     </div>
    </aside>
-   <div className="editor-main">
+   <div className="editor-main" onClick={()=>sidebarOpen&&setSidebarOpen(false)}>
     <div className="editor-workspace">
-     <aside className="editor-dock left-dock">
-      <div className="dock-tabs"><button className={panel==="create"?"active":""} onClick={()=>setPanel("create")}>{t.createTab}</button><button className={panel==="scene"?"active":""} onClick={()=>setPanel("scene")}>{t.sceneTab}</button></div>
-      {panel==="create"&&<><div className="dock-section-title">{t.primitives}</div><div className="primitive-grid">{groups.create.map(([type,label])=><button key={type} onClick={()=>add(type)}><span>{type==="sphere"?"●":type==="cylinder"?"◉":type==="torus"?"◎":type==="plane"?"▱":type==="wall"?"▰":"◆"}</span>{label}</button>)}</div><div className="dock-section-title">{t.sceneObjects}</div><div className="primitive-grid">{groups.scene.map(([type,label])=><button key={type} onClick={()=>add(type)}><span>✦</span>{label}</button>)}</div></>}
-      {panel==="scene"&&<div className="object-list object-list-large">{scene.map(o=><button className={o.id===selected?"selected":""} onClick={()=>setSelected(o.id)} key={o.id}><span>{o.type}</span><b>{o.name}</b></button>)}</div>}
      </aside>
      <section className="editor-center">
       <div className="viewport-project"><strong>Untitled project</strong><span>● {t.local} · {scene.length} {t.objectsCount}</span></div>
