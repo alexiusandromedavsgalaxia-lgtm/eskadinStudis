@@ -189,6 +189,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const jumpRef=useRef(false),pausedRef=useRef(false);
  const[cameraMode,setCameraMode]=useState("third");
  const cameraModeRef=useRef("third");
+ const cameraZoomRef=useRef(4.2);
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
   const runtime=runtimeRef.current;
@@ -247,9 +248,9 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   };
 
   let yaw=Math.PI,pitch=-.12,last=performance.now(),raf=0;
-  let currentCameraDistance=3.8,cameraZoomTarget=3.8,lastAppliedCameraMode="third";
+  let currentCameraDistance=3.8,cameraZoomTarget=cameraZoomRef.current,lastAppliedCameraMode="third";
   const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
-  const wheel=e=>{if(cameraModeRef.current==="first")return;e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom()};
+  const wheel=e=>{if(cameraModeRef.current==="first")return;e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
   renderer.domElement.addEventListener("wheel",wheel,{passive:false});
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
@@ -288,9 +289,11 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
     lastAppliedCameraMode=mode;
     player.visible=mode!=="first";
     cameraZoomTarget=mode==="first"?.8:mode==="shoulder"?2.2:mode==="third"?4.2:7;
+    cameraZoomRef.current=cameraZoomTarget;
     currentCameraDistance=cameraZoomTarget;
    }
    const cameraTargetY=playerCollider.start.y+1.18;
+   cameraZoomTarget=cameraZoomRef.current;
    currentCameraDistance+=(cameraZoomTarget-currentCameraDistance)*Math.min(1,dt*12);
    if(mode==="first"){
     camera.position.set(playerCollider.start.x,playerCollider.start.y+1.52,playerCollider.start.z);
@@ -319,7 +322,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   <button className={cameraMode==="first"?"active":""} onClick={()=>setMode("first")}>1ª</button>
   <button className={cameraMode==="shoulder"?"active":""} onClick={()=>setMode("shoulder")}>2ª</button>
   <button className={cameraMode==="third"?"active":""} onClick={()=>setMode("third")}>3ª</button>
-  <button className={cameraMode==="free"?"active":""} onClick={()=>setMode("free")}>LIBRE</button><button onClick={()=>{cameraZoomTarget=Math.min(12,cameraZoomTarget+.8)}} aria-label="Alejar cámara">−</button><button onClick={()=>{cameraZoomTarget=Math.max(.65,cameraZoomTarget-.8)}} aria-label="Acercar cámara">+</button>
+  <button className={cameraMode==="free"?"active":""} onClick={()=>setMode("free")}>LIBRE</button><button onClick={()=>{cameraZoomRef.current=Math.min(12,cameraZoomRef.current+.8)}} aria-label="Alejar cámara">−</button><button onClick={()=>{cameraZoomRef.current=Math.max(.65,cameraZoomRef.current-.8)}} aria-label="Acercar cámara">+</button>
  </div><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
