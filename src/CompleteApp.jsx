@@ -507,15 +507,64 @@ const STUDIO_OBJECT_CATALOG=(()=>{
 })();
 function generateSceneFromPrompt(prompt){
  const text=String(prompt||"").toLowerCase();
- const want=(keys,type,count=1)=>{for(const k of keys)if(text.includes(k))return Array.from({length:count},(_,i)=>({type,name:k+" "+(i+1),x:(i%5)*3-6,y:type==="cube"?.5:1,z:Math.floor(i/5)*3-3,rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2}));return[]};
- let out=[];
- const add=(type,name,x,y,z,s=1)=>out.push({id:Date.now()+out.length,type,name,x,y,z,rx:0,ry:0,rz:0,s,color:null,roughness:.55,metalness:.2});
- if(/casa|house|casita/.test(text)){add("floor","Suelo",-0.0,0,0,6);add("cube","Casa",0,1,0,2.5);add("roof","Tejado",0,3,0,2.8);add("door","Puerta",0,1,2.6,.8);add("window","Ventana",-1.4,1.5,2.6,.7);add("window","Ventana 2",1.4,1.5,2.6,.7)}
- if(/ciudad|city/.test(text)){for(let i=0;i<12;i++)add("cube","Edificio "+(i+1),(i%4)*5-7,1+((i*7)%4),Math.floor(i/4)*5-5,1.5)}
- if(/bosque|forest/.test(text)){for(let i=0;i<15;i++)add("tree","Árbol "+(i+1),(i%5)*4-8,0,Math.floor(i/5)*4-4,1)}
- if(/plataforma|obby|parkour/.test(text)){for(let i=0;i<10;i++)add("platform","Plataforma "+(i+1),i*2-9,.5+i*.35,(i%2)*3-1.5,1)}
- if(/castillo|castle/.test(text)){add("floor","Patio",0,0,0,7);for(let i=0;i<4;i++)add("tower","Torre "+(i+1),i<2?-5:5,2,i%2?5:-5,2);add("wall","Muralla",0,1,-5,5)}
- if(!out.length){for(let i=0;i<5;i++)add("cube","Bloque "+(i+1),i*2-4,.5,0,1)}
+ const out=[];
+ let n=0;
+ const add=(type,name,x,y,z,s=1,extra={})=>out.push({id:"ai-"+Date.now()+"-"+(++n),type,name,x,y,z,rx:0,ry:0,rz:0,s,color:null,roughness:.55,metalness:.2,...extra});
+ const grid=(count,spacing,fn)=>{for(let i=0;i<count;i++)fn(i)};
+ const has=(...words)=>words.some(w=>text.includes(w));
+ const scale=has("grande","large","enorme","huge")?1.8:has("pequeño","small")?.65:1;
+ const addHouse=(x,z,i=1)=>{add("floor","Casa suelo "+i,x,0,z,3.2*scale);add("cube","Casa "+i,x,1.25*scale,z,2.4*scale);add("roof","Tejado "+i,x,3.1*scale,z,2.8*scale);add("door","Puerta "+i,x,1.1*scale,z+2.45*scale,.65*scale);add("window","Ventana "+i,x-1.25*scale,1.7*scale,z+2.45*scale,.6*scale);add("window","Ventana "+i+"B",x+1.25*scale,1.7*scale,z+2.45*scale,.6*scale)};
+ const addBuilding=(x,z,i,h=3)=>{add("cube","Edificio "+i,x,h/2,z,2*scale);add("window","Ventanas "+i,x,h*.55,z+2.05*scale,1.3*scale);if(has("techo","rooftop","azotea"))add("roof","Azotea "+i,x,h+.15,z,2.2*scale)};
+ const addRoad=(x,z,w,d,i)=>add("road","Carretera "+i,x,.03,z,Math.max(w,d)*.5*scale,{width:w,height:.08,depth:d});
+ const addCamera=(x,y,z,name,target=[0,1,0])=>add("camera",name,x,y,z,.8,{target});
+ if(has("casa","house","pueblo","village")){
+  add("floor","Terreno",0,0,0,14*scale);
+  grid(9,6,(i)=>addHouse((i%3)*6-6,Math.floor(i/3)*6-6,i+1));
+  addRoad(0,.0,5,28,1);addRoad(0,0,28,5,2);
+ }
+ if(has("ciudad","city","urbano","downtown")){
+  add("floor","Ciudad",0,0,0,28*scale);
+  grid(25,6,(i)=>addBuilding((i%5)*6-12,Math.floor(i/5)*6-12,i+1,2+((i*7)%6)));
+  for(let i=0;i<6;i++)addRoad(0,i*9-22,4,56,i+1);
+  for(let i=0;i<6;i++)addRoad(i*9-22,0,56,4,i+7);
+ }
+ if(has("bosque","forest","selva","jungle")){
+  add("floor","Suelo bosque",0,0,0,30*scale);
+  grid(64,3,(i)=>add(has("selva","jungle")?"palm":"tree","Árbol "+(i+1),(i%8)*3.8-14,0,Math.floor(i/8)*3.8-14,1*scale));
+  add("path","Sendero",0,.03,0,3*scale);
+ }
+ if(has("castillo","castle","fortaleza")){
+  add("floor","Patio del castillo",0,0,0,16*scale);
+  [[-7,-7],[-7,7],[7,-7],[7,7]].forEach((p,i)=>add("tower","Torre "+(i+1),p[0],3*scale,p[1],2.5*scale));
+  add("wall","Muralla norte",0,2,-8,8*scale);add("wall","Muralla sur",0,2,8,8*scale);
+  add("wall","Muralla oeste",-8,2,0,8*scale);add("wall","Muralla este",8,2,0,8*scale);
+  add("gate","Puerta principal",0,2,8.3,1.8*scale);
+ }
+ if(has("obby","parkour","plataforma","plataformas")){
+  grid(24,2.5,(i)=>add("platform","Plataforma "+(i+1),i*2.3-27,.6+i*.12,(i%4)*2.8-4,1*scale));
+  add("goal","Meta",28,2,0,1);add("spawn","Spawn", -30,.6,0,1);
+ }
+ if(has("escuela","school","instituto")){
+  add("floor","Suelo escuela",0,0,0,14*scale);add("cube","Edificio escuela",0,2,0,5*scale);
+  for(let i=0;i<8;i++){add("table","Mesa "+(i+1),(i%4)*2.5-3.75,.8,Math.floor(i/4)*3-1.5,.8);add("chair","Silla "+(i+1),(i%4)*2.5-3.75,.5,Math.floor(i/4)*3-2.4,.45)}
+  add("door","Entrada",-5,1,0,1);add("sign","Cartel escuela",0,2,5,.8);
+ }
+ if(has("interior","interior","casa por dentro","habitación","habitacion")){
+  add("floor","Suelo interior",0,0,0,8*scale);add("wall","Pared norte",0,2,-4,4*scale);add("wall","Pared sur",0,2,4,4*scale);
+  add("wall","Pared oeste",-4,2,0,4*scale);add("wall","Pared este",4,2,0,4*scale);
+  add("table","Mesa",0,.8,0,1.2);add("chair","Silla",0,.5,2,0.6);add("lamp","Lámpara",0,2.8,0,.5);
+ }
+ if(has("playa","beach")){add("sand","Playa",0,0,0,20*scale);add("water","Mar",0,-.05,12,16*scale);grid(12,5,(i)=>add("palm","Palmera "+(i+1),(i%4)*5-7,0,Math.floor(i/4)*5-6,.9))}
+ if(has("nieve","snow","winter")){add("ice","Terreno helado",0,0,0,24*scale);grid(30,4,(i)=>add("tree","Pino nevado "+(i+1),(i%6)*4-10,0,Math.floor(i/6)*4-10,1))}
+ if(has("granja","farm")){add("grass","Campo",0,0,0,22*scale);for(let i=0;i<5;i++)add("fence","Valla "+(i+1),i*4-8,.8,5,4);add("house","Granja",0,1,0,3);grid(12,3,(i)=>add("tree","Árbol "+(i+1),(i%4)*3-4,0,Math.floor(i/4)*3-4,1))}
+ if(has("carretera","road","autopista")){add("road","Carretera principal",0,.03,0,20*scale,{width:6,height:.08,depth:40});for(let i=0;i<8;i++)add("lamp","Farola "+(i+1),-4,2,i*5-18,.5)}
+ if(has("noche","night","oscuro")){add("light","Luz ambiente",0,8,0,1,{intensity:1.5,color:"#9db8ff"});for(let i=0;i<8;i++)add("lamp","Luz calle "+(i+1),i*4-14,2,3,.5)}
+ if(has("cámara","camara","camera","cinemática","cinematic")||out.length){
+  addCamera(12,8,14,"Cámara principal");
+  if(has("cinemática","cinematic")){addCamera(-12,5,8,"Cámara cinemática A");addCamera(0,4,-14,"Cámara cinemática B")}
+ }
+ if(has("spawn","inicio","jugador","player"))add("spawn","Spawn jugador",0,.6,0,1);
+ if(!out.length){add("floor","Mapa base",0,0,0,12);for(let i=0;i<16;i++)add("cube","Bloque "+(i+1),(i%4)*3-4.5,.5,Math.floor(i/4)*3-4.5,1);addCamera(10,7,10,"Cámara principal")}
  return out;
 }
 
@@ -575,7 +624,7 @@ function Editor(){useStudioFullscreenLock();
   }
  }catch{}
 };
- useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();if(e.shiftKey)redo();else undo()}if(e.ctrlKey&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();if(e.shiftKey)redo();else undo()}if(e.ctrlKey&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
+ useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();if(e.shiftKey)redo();else undo()}if(e.ctrlKey&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
  const objectCatalog={
  es:[["cube","Cubo"],["wall","Pared"],["sphere","Esfera"],["cylinder","Cilindro"],["cone","Cono"],["torus","Toro"],["capsule","Cápsula"],["plane","Plano"],["floor","Suelo"],["fence","Valla"],["stairs","Escaleras"],["light","Luz"],["sound","Sonido"],["spawn","Punto de aparición"],["camera","Cámara"],["text","Texto"]],
  en:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"],["fence","Fence"],["stairs","Stairs"],["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]],
