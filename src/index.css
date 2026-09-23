@@ -1078,3 +1078,78 @@ body:has(.editor-page) .nav{padding:0 24px}
 .market-item-created .market-item-info p{font-size:11px;color:#77859a;min-height:32px;margin:4px 0}
 @media(max-width:1100px){.object-studio-layout{grid-template-columns:210px minmax(0,1fr)}.object-studio-inspector{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.object-studio-inspector .object-studio-panel-title,.object-studio-inspector .object-studio-type-grid,.object-studio-inspector .object-studio-checks,.object-studio-inspector .object-studio-generate,.object-studio-inspector .object-studio-note{grid-column:1/-1}}
 @media(max-width:720px){.object-studio-page{padding:16px 10px 35px}.object-studio-header{align-items:flex-start;flex-direction:column}.object-studio-header h1{font-size:31px}.object-studio-layout{grid-template-columns:1fr}.object-studio-panel{min-height:auto}.object-studio-scene-list{max-height:210px}.object-studio-preview{min-height:500px}.object-studio-preview>.three-editor-viewport{min-height:430px}.object-studio-inspector{display:flex}.market-creator-link{align-items:flex-start;flex-direction:column}}
+
+
+/* Global navigation cleanup: brand and menu live together on the left. */
+.nav{
+  height:64px!important;
+  border-bottom:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  justify-content:flex-start!important;
+}
+.nav-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.global-brand{
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  color:var(--text);
+  text-decoration:none;
+  font-weight:950;
+  font-size:20px;
+  letter-spacing:-.045em;
+  white-space:nowrap;
+}
+.global-brand span,.global-sidebar-brand span{color:var(--accent)}
+.global-brand sup,.global-sidebar-brand sup{
+  font-size:7px;
+  margin-left:1px;
+  opacity:.65;
+}
+.global-menu-button{
+  position:relative!important;
+  top:auto!important;
+  right:auto!important;
+  left:auto!important;
+  transform:none!important;
+  width:38px!important;
+  height:38px!important;
+  flex:0 0 38px;
+  background:transparent!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  box-shadow:none!important;
+}
+.global-menu-button:hover{
+  background:rgba(255,255,255,.05)!important;
+}
+.global-sidebar-brand{
+  display:block;
+  padding:0 0 18px;
+  border-bottom:1px solid var(--line);
+}
+.global-sidebar-brand a{
+  color:var(--text);
+  text-decoration:none;
+  font-weight:950;
+  font-size:20px;
+  letter-spacing:-.045em;
+}
+@media(max-width:620px){
+  .nav{height:58px!important}
+  .global-brand{font-size:18px}
+  .global-menu-button{width:38px!important;height:38px!important}
+}
+
+/* Studio uses the same clean top edge, with no leftover global black bar. */
+body:has(.editor-page) .nav{
+  display:none!important;
+}
+body:has(.editor-page) .editor-page{
+  height:100dvh!important;
+  padding-top:12px!important;
+}
