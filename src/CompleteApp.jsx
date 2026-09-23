@@ -113,19 +113,28 @@ function createEskadinR15Avatar(user={}){
  const box=(parent,name,w,h,d,material,r=.08)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
  const sphere=(parent,name,r,material)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
  const lower=bone("LowerTorso",0,1.58*sy,0),upper=bone("UpperTorso",0,.53*sy,0,lower),neck=bone("Neck",0,.43*sy,0,upper),head=bone("Head",0,.32*sy,0,neck);
- const lUL=bone("LeftUpperLeg",-hip,-.38*sy,0,lower),lLL=bone("LeftLowerLeg",0,-.60*sy,0,lUL),lF=bone("LeftFoot",0,-.55*sy,-.16,lLL);
- const rUL=bone("RightUpperLeg",hip,-.38*sy,0,lower),rLL=bone("RightLowerLeg",0,-.60*sy,0,rUL),rF=bone("RightFoot",0,-.55*sy,-.16,rLL);
+ const lUL=bone("LeftUpperLeg",-hip,-.38*sy,0,lower),lLL=bone("LeftLowerLeg",0,-.60*sy,0,lUL),lF=bone("LeftFoot",0,-.55*sy,-.17,lLL);
+ const rUL=bone("RightUpperLeg",hip,-.38*sy,0,lower),rLL=bone("RightLowerLeg",0,-.60*sy,0,rUL),rF=bone("RightFoot",0,-.55*sy,-.17,rLL);
  const lUA=bone("LeftUpperArm",-shoulder,.32*sy,0,upper),lLA=bone("LeftLowerArm",0,-.53*sy,0,lUA),lH=bone("LeftHand",0,-.48*sy,0,lLA);
  const rUA=bone("RightUpperArm",shoulder,.32*sy,0,upper),rLA=bone("RightLowerArm",0,-.53*sy,0,rUA),rH=bone("RightHand",0,-.48*sy,0,rLA);
- box(lower,"LowerTorsoMesh",classic?.78* sx:.86*sx,.50*sy,classic?.42:.46,shirt);
- box(upper,"UpperTorsoMesh",torsoW*sx,.70*sy,torsoD,shirt);
- sphere(head,"HeadMesh",.40*hs,skin);
- box(lUL,"LeftUpperLegMesh",.40*sx,.72*sy,.40,pants);box(lLL,"LeftLowerLegMesh",.38*sx,.62*sy,.40,pants);box(lF,"LeftFootMesh",.44*sx,.22*sy,.70,shoe);
- box(rUL,"RightUpperLegMesh",.40*sx,.72*sy,.40,pants);box(rLL,"RightLowerLegMesh",.38*sx,.62*sy,.40,pants);box(rF,"RightFootMesh",.44*sx,.22*sy,.70,shoe);
- box(lUA,"LeftUpperArmMesh",.34*sx,.62*sy,.36,shirt);box(lLA,"LeftLowerArmMesh",.30*sx,.54*sy,.32,skin);sphere(lH,"LeftHandMesh",.17*sx,skin);
- box(rUA,"RightUpperArmMesh",.34*sx,.62*sy,.36,shirt);box(rLA,"RightLowerArmMesh",.30*sx,.54*sy,.32,skin);sphere(rH,"RightHandMesh",.17*sx,skin);
 
- const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.4});
+ // Robloxian 2.0-inspired proportions, with a narrower waist.
+ const rounded=(parent,name,w,h,d,material)=>{
+   const g=new THREE.Group();g.name=name;const r=Math.min(w,d)*.40;
+   const geo=new THREE.CapsuleGeometry(r,Math.max(.02,h-r*2),12,6);
+   const m=new THREE.Mesh(geo,material.clone());m.scale.z=Math.max(.1,d/(r*2));m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g;
+ };
+ const torsoMesh=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),shirt.clone());
+ torsoMesh.name="UpperTorsoMesh";torsoMesh.scale.set(.58*sx,.40*sy,.30);torsoMesh.position.y=.02*sy;torsoMesh.castShadow=true;torsoMesh.receiveShadow=true;upper.add(torsoMesh);
+ const waistMesh=new THREE.Mesh(new THREE.CapsuleGeometry(.30*sx,.24*sy,12,6),shirt.clone());
+ waistMesh.name="LowerTorsoMesh";waistMesh.scale.z=.78;waistMesh.position.y=.01*sy;waistMesh.castShadow=true;waistMesh.receiveShadow=true;lower.add(waistMesh);
+ const headMesh=new THREE.Mesh(new THREE.CapsuleGeometry(.39*hs,.30*hs,12,8),skin.clone());
+ headMesh.name="HeadMesh";headMesh.scale.z=.94;headMesh.castShadow=true;headMesh.receiveShadow=true;head.add(headMesh);
+ rounded(lUL,"LeftUpperLegMesh",.43*sx,.72*sy,.43,pants);rounded(lLL,"LeftLowerLegMesh",.39*sx,.62*sy,.39,pants);rounded(lF,"LeftFootMesh",.46*sx,.24*sy,.68,shoe);
+ rounded(rUL,"RightUpperLegMesh",.43*sx,.72*sy,.43,pants);rounded(rLL,"RightLowerLegMesh",.39*sx,.62*sy,.39,pants);rounded(rF,"RightFootMesh",.46*sx,.24*sy,.68,shoe);
+ rounded(lUA,"LeftUpperArmMesh",.40*sx,.60*sy,.40,shirt);rounded(lLA,"LeftLowerArmMesh",.35*sx,.53*sy,.35,skin);sphere(lH,"LeftHandMesh",.19*sx,skin);
+ rounded(rUA,"RightUpperArmMesh",.40*sx,.60*sy,.40,shirt);rounded(rLA,"RightLowerArmMesh",.35*sx,.53*sy,.35,skin);sphere(rH,"RightHandMesh",.19*sx,skin);
+const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.4});
  [-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.035*hs,12,8),eyeMat);e.position.set(x*hs,.02,.365*hs);face.add(e)});
  const mouth=new THREE.Mesh(new THREE.BoxGeometry(.16*hs,.025,.018),eyeMat);mouth.position.set(0,-.11*hs,.36*hs);face.add(mouth);
  if(user.face==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.48*hs,.06,.035),new THREE.MeshStandardMaterial({color:0x151922,metalness:.25,roughness:.3}));glasses.position.set(0,.03,.38*hs);face.add(glasses)}
