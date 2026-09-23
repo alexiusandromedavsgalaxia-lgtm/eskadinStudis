@@ -376,7 +376,9 @@ function meshFor(o){
  }
  root.position.set(Number.isFinite(Number(o.x))?Number(o.x):0,Number.isFinite(Number(o.y))?Number(o.y):0,Number.isFinite(Number(o.z))?Number(o.z):0);
  root.rotation.set(THREE.MathUtils.degToRad(Number.isFinite(Number(o.rx))?Number(o.rx):0),THREE.MathUtils.degToRad(Number.isFinite(Number(o.ry))?Number(o.ry):0),THREE.MathUtils.degToRad(Number.isFinite(Number(o.rz))?Number(o.rz):0));
- root.scale.setScalar(THREE.MathUtils.clamp(Number.isFinite(Number(o.s))?Number(o.s):1,.05,10));
+ const baseScale=THREE.MathUtils.clamp(Number.isFinite(Number(o.s))?Number(o.s):1,.05,10);
+ const sx=Number.isFinite(Number(o.sx))?Number(o.sx):1,sy=Number.isFinite(Number(o.sy))?Number(o.sy):1,sz=Number.isFinite(Number(o.sz))?Number(o.sz):1;
+ root.scale.set(baseScale*sx,baseScale*sy,baseScale*sz);
  root.userData.objectId=o.id;
  root.userData.runtimeType=o.type;
  root.userData.colliderParts=(o.type==="stairs"||o.type==="fence")?[]:null;
@@ -595,86 +597,87 @@ function generateSceneFromPrompt(prompt){
 function aiEditScene(scene,prompt){
  const text=String(prompt||"").toLowerCase().trim();
  const next=JSON.parse(JSON.stringify(scene));
- const colorMap={
-  rojo:"#ef4444",roja:"#ef4444",red:"#ef4444",
-  azul:"#3b82f6",blue:"#3b82f6",
-  verde:"#22c55e",green:"#22c55e",
-  amarillo:"#facc15",amarilla:"#facc15",yellow:"#facc15",
-  naranja:"#f97316",orange:"#f97316",
-  rosa:"#ec4899",pink:"#ec4899",
-  morado:"#a855f7",violeta:"#8b5cf6",purple:"#a855f7",
-  blanco:"#f8fafc",blanca:"#f8fafc",white:"#f8fafc",
-  negro:"#111827",negra:"#111827",black:"#111827",
-  gris:"#64748b",gray:"#64748b",marron:"#8b5e3c",brown:"#8b5e3c",
-  cian:"#06b6d4",turquesa:"#14b8a6",dorado:"#f59e0b"
- };
- const wantedColor=Object.entries(colorMap).find(([k])=>text.includes(k))?.[1]||null;
- const targetWords=
-  text.includes("casa")||text.includes("casas")?["casa","suelo casa","tejado","puerta","ventana"]:
-  text.includes("edificio")||text.includes("edificios")||text.includes("ciudad")?["edificio","ventanas","azotea"]:
-  text.includes("árbol")||text.includes("arbol")||text.includes("bosque")?["árbol","pino","palmera"]:
-  text.includes("pared")?["pared","wall"]:
-  text.includes("suelo")||text.includes("terreno")||text.includes("piso")?["suelo","terreno","floor","campo"]:
-  text.includes("carretera")||text.includes("camino")?["carretera","camino","road","sendero"]:
-  text.includes("luz")||text.includes("luces")?["luz","farola","lamp"]:
-  text.includes("cámara")||text.includes("camara")?["cámara","camera"]:
-  null;
- const matches=o=>{
-  if(text.includes("seleccionado")||text.includes("seleccionada")) return o.id===next.find(x=>x.id===next._selected)?.id;
-  if(!targetWords)return true;
-  const hay=(String(o.name)+" "+String(o.type)).toLowerCase();
-  return targetWords.some(w=>hay.includes(w));
- };
- let changed=false;
- if(wantedColor){
-  next.forEach(o=>{if(matches(o)){o.color=wantedColor;changed=true}});
+ const colors={rojo:"#ef4444",roja:"#ef4444",red:"#ef4444",azul:"#3b82f6",blue:"#3b82f6",verde:"#22c55e",green:"#22c55e",amarillo:"#facc15",amarilla:"#facc15",yellow:"#facc15",naranja:"#f97316",orange:"#f97316",rosa:"#ec4899",pink:"#ec4899",morado:"#a855f7",violeta:"#8b5cf6",purple:"#a855f7",blanco:"#f8fafc",blanca:"#f8fafc",white:"#f8fafc",negro:"#111827",negra:"#111827",black:"#111827",gris:"#64748b",gray:"#64748b",marron:"#8b5e3c",brown:"#8b5e3c",cian:"#06b6d4",turquesa:"#14b8a6",dorado:"#f59e0b"};
+ const wantedColor=Object.entries(colors).find(([k])=>text.includes(k))?.[1]||null;
+ const findObjects=(words)=>next.filter(o=>words.some(w=>(String(o.name)+" "+String(o.type)).toLowerCase().includes(w)));
+ const wallWords=["muro","pared","wall"];
+ const walls=findObjects(wallWords);
+ const selectedObj=next.find(o=>String(o.id)===String(next._selected));
+ let targets=null;
+ if(text.includes("seleccionado")||text.includes("seleccionada"))targets=selectedObj?[selectedObj]:[];
+ else if(text.includes("muro")||text.includes("pared")||text.includes("wall"))targets=walls;
+ else if(text.includes("casa"))targets=findObjects(["casa"]);
+ else if(text.includes("árbol")||text.includes("arbol"))targets=findObjects(["árbol","arbol","tree","pino"]);
+ else if(text.includes("edificio"))targets=findObjects(["edificio","building"]);
+ else if(text.includes("suelo")||text.includes("piso")||text.includes("terreno"))targets=findObjects(["suelo","floor","terreno"]);
+ else if(text.includes("carretera")||text.includes("camino"))targets=findObjects(["carretera","road","camino"]);
+ else if(text.includes("luz"))targets=findObjects(["luz","light","farola"]);
+ const changed=[];
+ const apply=(fn)=>{(targets===null?next:targets).forEach(o=>{fn(o);changed.push(o.id)})};
+ if(wantedColor && (text.includes("cambia")||text.includes("cambiar")||text.includes("pon")||text.includes("color")||text.includes("haz"))){
+  apply(o=>{o.color=wantedColor});
  }
- if(/más grande|mas grande|agranda|agrandar|bigger|larger/.test(text)){
-  next.forEach(o=>{if(matches(o)){o.s=Math.min(10,(Number(o.s)||1)*1.35);changed=true}});
- }
- if(/más pequeño|mas pequeño|encoge|reduc|smaller/.test(text)){
-  next.forEach(o=>{if(matches(o)){o.s=Math.max(.05,(Number(o.s)||1)*.75);changed=true}});
- }
- if(/metal|metálic|metallic/.test(text)){
-  next.forEach(o=>{if(matches(o)){o.metalness=.9;o.roughness=.25;changed=true}});
- }
- if(/mate|más rugoso|mas rugoso|rough/.test(text)){
-  next.forEach(o=>{if(matches(o)){o.roughness=.85;changed=true}});
- }
- if(/brillante|glossy|pulido/.test(text)){
-  next.forEach(o=>{if(matches(o)){o.roughness=.12;changed=true}});
- }
- if(/borra|borrar|elimina|eliminar|quita|quitar|delete|remove/.test(text)){
-  const removable=next.filter(o=>{
-   const hay=(String(o.name)+" "+String(o.type)).toLowerCase();
-   return targetWords?targetWords.some(w=>hay.includes(w)):false;
-  });
-  if(removable.length){return {scene:next.filter(o=>!removable.includes(o)),message:"He quitado los objetos que coinciden con la petición."}}
+ if(/más grande|mas grande|agranda|agrandar|bigger|larger/.test(text))apply(o=>{o.s=Math.min(10,(Number(o.s)||1)*1.35)});
+ if(/más pequeño|mas pequeño|pequeño|pequeña|encoge|reduc|smaller/.test(text)&&!text.includes("rectángulo"))apply(o=>{o.s=Math.max(.05,(Number(o.s)||1)*.75)});
+ if(/metal|metálic|metallic/.test(text))apply(o=>{o.metalness=.9;o.roughness=.25});
+ if(/mate|más rugoso|mas rugoso|rough/.test(text))apply(o=>{o.roughness=.85});
+ if(/brillante|glossy|pulido/.test(text))apply(o=>{o.roughness=.12});
+ if(/borra|borrar|elimina|eliminar|quita|quitar|delete|remove/.test(text)&&targets!==null&&targets.length){
+  const ids=new Set(targets.map(o=>o.id));return {scene:next.filter(o=>!ids.has(o.id)),message:"He borrado exactamente los objetos que pediste, sin generar otros."};
  }
  if(/mueve|mover|move/.test(text)){
   const nums=text.match(/(?:a|to)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)/);
-  if(nums){
-   const [x,y,z]=nums.slice(1).map(v=>Number(v.replace(",",".")));
-   next.forEach(o=>{if(matches(o)){o.x=x;o.y=y;o.z=z;changed=true}});
-  }
+  if(nums){const [x,y,z]=nums.slice(1).map(v=>Number(v.replace(",",".")));apply(o=>{o.x=x;o.y=y;o.z=z})}
  }
  if(/gira|girar|rota|rotar|rotate/.test(text)){
   const deg=text.match(/(-?\d+(?:[.,]\d+)?)\s*(?:grados|degrees|°)/);
-  if(deg){const value=Number(deg[1].replace(",","."));next.forEach(o=>{if(matches(o)){o.ry=value;changed=true}})}
+  if(deg){const value=Number(deg[1].replace(",","."));apply(o=>{o.ry=value})}
  }
- if(/noche|night|oscuro|dark/.test(text)){
-  next.push({id:"ai-light-"+Date.now(),type:"light",name:"Luz nocturna IA",x:0,y:8,z:0,rx:0,ry:0,rz:0,s:1,color:"#9db8ff",intensity:1.5,roughness:.55,metalness:.2});
-  changed=true;
+
+ // Geometría precisa: un rectángulo/conector entre muros usa sus dimensiones y posiciones reales.
+ // Nunca se sustituye por una colección arbitraria de cubos.
+ if(/rectángulo|rectangulo/.test(text)&&walls.length){
+  const source=walls[0];
+  const second=walls[1]||null;
+  const baseS=Number(source.s)||1;
+  const wallLength=4*baseS,wallHeight=2*baseS,wallThickness=.35*baseS;
+  let x=Number(source.x)||0,y=(Number(source.y)||0),z=Number(source.z)||0;
+  let sx=wallLength,sy=wallHeight,sz=wallThickness;
+  if(second){
+   const x2=Number(second.x)||0,z2=Number(second.z)||0;
+   x=(x+x2)/2;z=(z+z2)/2;
+   const dx=Math.abs(x2-(Number(source.x)||0)),dz=Math.abs(z2-(Number(source.z)||0));
+   if(dx>=dz){sx=Math.max(.1,dx);sz=wallThickness;sy=wallHeight}else{sz=Math.max(.1,dz);sx=wallThickness;sy=wallHeight}
+  }
+  const small=/pequeñ|small/.test(text);
+  if(small){if(sx>=sz)sx=Math.min(sx,wallLength);else sz=Math.min(sz,wallLength)}
+  const item={id:"ai-rect-"+Date.now(),type:"cube",name:"Rectángulo IA",x,y,z,rx:0,ry:0,rz:0,s:1,sx,sy,sz,color:wantedColor||source.color||"#71809a",roughness:source.roughness??.55,metalness:source.metalness??.2};
+  next.push(item);
+  return {scene:next,message:second?"He creado un único rectángulo ajustado al hueco entre los dos muros, usando sus medidas reales.":"He creado un único rectángulo tomando las medidas del muro existente. No he añadido cubos extra."};
  }
- if(/cámara|camara|camera/.test(text)&&!/cambia.*cámara|cambia.*camara/.test(text)){
-  next.push({id:"ai-camera-"+Date.now(),type:"camera",name:"Cámara IA",x:12,y:8,z:14,rx:0,ry:0,rz:0,s:.8,target:[0,1,0]});
-  changed=true;
- }
+
+ // Añadir objetos: solo se crean los objetos nombrados. No se ejecuta el generador de mapas para una orden simple.
  if(/añade|anade|agrega|agregar|crea|crear|add|create/.test(text)){
-  const generated=generateSceneFromPrompt(text);
-  if(generated.length){next.push(...generated.map((o,i)=>({...o,id:"ai-add-"+Date.now()+"-"+i})));changed=true}
+  const specs=[];
+  if(/árbol|arbol|tree|pino/.test(text))specs.push(["tree","Árbol IA"]);
+  if(/casa|house/.test(text))specs.push(["house","Casa IA"]);
+  if(/edificio|building/.test(text))specs.push(["building","Edificio IA"]);
+  if(/muro|pared|wall/.test(text)&&!text.includes("rectángulo")&&!text.includes("rectangulo"))specs.push(["wall","Muro IA"]);
+  if(/cubo|cube/.test(text))specs.push(["cube","Cubo IA"]);
+  if(/esfera|sphere/.test(text))specs.push(["sphere","Esfera IA"]);
+  if(/cámara|camara|camera/.test(text))specs.push(["camera","Cámara IA"]);
+  if(/luz|light/.test(text))specs.push(["light","Luz IA"]);
+  const countMatch=text.match(/(?:dos|2|tres|3|cuatro|4|cinco|5|una|un)\s+(árbol|arbol|tree|pino|casa|house|edificio|building|cubo|cube|esfera|sphere)/);
+  const countMap={dos:2,2:2,tres:3,3:3,cuatro:4,4:4,cinco:5,5:5,una:1,un:1};
+  if(countMatch){const n=countMap[text.match(/(?:dos|2|tres|3|cuatro|4|cinco|5|una|un)/)?.[0]]||1;const base=specs[0];if(base){specs.length=0;for(let i=0;i<n;i++)specs.push([base[0],base[1]+" "+(i+1)])}}
+  specs.forEach(([type,name],i)=>{
+   const item={id:"ai-add-"+Date.now()+"-"+i,type,name,x:(Number(source?.x)||0)+i*2,y:type==="wall"?1:.5,z:(Number(source?.z)||0),rx:0,ry:0,rz:0,s:1,color:wantedColor||null,roughness:.55,metalness:.2};
+   next.push(item);
+  });
+  if(specs.length)return {scene:next,message:"He añadido únicamente los objetos que nombraste. La IA ya no genera un mapa entero para una orden simple."};
  }
- return {scene:next.filter(o=>o&&o.id!==undefined),message:changed?"He aplicado los cambios al entorno que ya estaba abierto.":"No encontré una acción clara. Prueba algo como «cambia las casas a rojo», «añade árboles» o «haz los edificios metálicos»."};
+ if(changed.length)return {scene:next,message:"He aplicado solo los cambios solicitados al entorno existente."};
+ return {scene:next,message:"No he hecho cambios porque la orden no identifica con suficiente precisión qué objeto modificar. Así evitamos que la IA se invente cosas."};
 }
 
 function describeScene(scene){
@@ -716,7 +719,7 @@ function Editor(){useStudioFullscreenLock();
  const upd=(id,patch)=>{if(!historyLock.current)pushHistory(scene);setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o))};
  const undo=()=>{if(!past.length)return;const previous=past[past.length-1];setFuture(h=>[JSON.parse(JSON.stringify(scene)),...h.slice(0,49)]);setPast(h=>h.slice(0,-1));setScene(previous);setSelected(previous[0]?.id||null)};
  const redo=()=>{if(!future.length)return;const next=future[0];setPast(h=>[...h.slice(-49),JSON.parse(JSON.stringify(scene))]);setFuture(h=>h.slice(1));setScene(next);setSelected(next[0]?.id||null)};
- const runAI=()=>{const prompt=aiPrompt.trim();if(!prompt)return;setAiBusy(true);setTimeout(()=>{const result=aiEditScene(scene,prompt);if(JSON.stringify(result.scene)!==JSON.stringify(scene)){pushHistory(scene);setScene(result.scene);setSelected(result.scene.at(-1)?.id||selected)}setAiMessage(result.message+" "+describeScene(result.scene));setAiPrompt("");setAiBusy(false)},250)};
+ const runAI=()=>{const prompt=aiPrompt.trim();if(!prompt)return;setAiBusy(true);setTimeout(()=>{const sceneForAI=scene.map(o=>o.id===selected?{...o,_selected:true}:o);const result=aiEditScene(sceneForAI,prompt);result.scene.forEach(o=>{if(o._selected)delete o._selected});if(JSON.stringify(result.scene)!==JSON.stringify(scene)){pushHistory(scene);setScene(result.scene);setSelected(result.scene.at(-1)?.id||selected)}setAiMessage(result.message+" "+describeScene(result.scene));setAiPrompt("");setAiBusy(false)},250)};
  const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],floor:[0,0,0],fence:[0,.8,0],stairs:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};applyScene([...scene,item]);setSelected(id)};
  const saveScene=()=>{
   const id=projectId||"project-"+Date.now();
