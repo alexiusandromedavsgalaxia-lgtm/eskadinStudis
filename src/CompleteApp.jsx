@@ -125,9 +125,9 @@ function createEskadinR15Avatar(user={}){
 
  // Original geometry rebuilt to closely follow the classic Robloxian 2.0 silhouette:
  // broad shoulders, slim tapered torso, narrow waist, slim separated limbs, simple rounded head.
- const torso=tapered(upper,"UpperTorsoMesh",1.04*sx,.72*sx,.48,.40,.82*sy,shirt,16);torso.position.y=.02*sy;
- const waist=tapered(lower,"LowerTorsoMesh",.72*sx,.84*sx,.40,.44,.48*sy,shirt,16);waist.position.y=.02*sy;
- const headMesh=new THREE.Mesh(new THREE.CapsuleGeometry(.38*hs,.34*hs,12,8),skin.clone());
+ const torso=tapered(upper,"UpperTorsoMesh",1.02*sx,.76*sx,.50,.42,.86*sy,shirt,16);torso.position.y=.02*sy;
+ const waist=tapered(lower,"LowerTorsoMesh",.76*sx,.84*sx,.42,.46,.50*sy,shirt,16);waist.position.y=.02*sy;
+ const headMesh=new THREE.Mesh(new THREE.SphereGeometry(.40*hs,24,18),skin.clone());
  headMesh.name="HeadMesh";headMesh.scale.z=.92;headMesh.castShadow=true;headMesh.receiveShadow=true;head.add(headMesh);
  tapered(lUL,"LeftUpperLegMesh",.38*sx,.34*sx,.38,.34,.70*sy,pants,12).position.y=.02*sy;
  tapered(lLL,"LeftLowerLegMesh",.34*sx,.30*sx,.34,.30,.64*sy,pants,12).position.y=.02*sy;
@@ -247,7 +247,10 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   };
 
   let yaw=Math.PI,pitch=-.12,last=performance.now(),raf=0;
-  let currentCameraDistance=3.8;
+  let currentCameraDistance=3.8,cameraZoomTarget=3.8,lastAppliedCameraMode="third";
+  const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
+  const wheel=e=>{if(cameraModeRef.current==="first")return;e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom()};
+  renderer.domElement.addEventListener("wheel",wheel,{passive:false});
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
   const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)}};
@@ -281,28 +284,32 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
    const mode=cameraModeRef.current;
+   if(mode!==lastAppliedCameraMode){
+    lastAppliedCameraMode=mode;
+    player.visible=mode!=="first";
+    cameraZoomTarget=mode==="first"?.8:mode==="shoulder"?2.2:mode==="third"?4.2:7;
+    currentCameraDistance=cameraZoomTarget;
+   }
    const cameraTargetY=playerCollider.start.y+1.18;
-   const smooth=(target)=>{currentCameraDistance+=((target-currentCameraDistance)*Math.min(1,dt*14));return currentCameraDistance};
+   currentCameraDistance+=(cameraZoomTarget-currentCameraDistance)*Math.min(1,dt*12);
    if(mode==="first"){
-    player.visible=false;
     camera.position.set(playerCollider.start.x,playerCollider.start.y+1.52,playerCollider.start.z);
     camera.rotation.order="YXZ";
     camera.rotation.set(pitch,yaw+Math.PI,0);
    }else{
-    player.visible=true;
-    const targetDistance=mode==="shoulder"?1.75:mode==="free"?6.5:3.8;
-    const cameraDistance=smooth(targetDistance);
-    const cameraHeight=mode==="shoulder"?1.35:mode==="free"?2.7:2.05;
-    const side=mode==="shoulder"?0.72:0;
+    const cameraDistance=Math.max(mode==="shoulder"?.95:1.5,currentCameraDistance);
+    const cameraHeight=mode==="shoulder"?1.15:mode==="free"?2.6:1.75;
+    const side=mode==="shoulder"?.78:0;
+    const lookAhead=mode==="free"?.8:.22;
     const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance+Math.cos(yaw)*side;
     const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance-Math.sin(yaw)*side;
     camera.position.set(camX,cameraTargetY+cameraHeight-1.15,camZ);
-    camera.lookAt(playerCollider.start.x+Math.sin(yaw)*.2,cameraTargetY,playerCollider.start.z+Math.cos(yaw)*.2);
+    camera.lookAt(playerCollider.start.x+Math.sin(yaw)*lookAhead,cameraTargetY,playerCollider.start.z+Math.cos(yaw)*lookAhead);
    }
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
-  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);renderer.domElement.removeEventListener("wheel",wheel);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[]);
  const[menuOpen,setMenuOpen]=useState(false);
  const setMode=mode=>{cameraModeRef.current=mode;setCameraMode(mode)};
@@ -312,7 +319,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   <button className={cameraMode==="first"?"active":""} onClick={()=>setMode("first")}>1ª</button>
   <button className={cameraMode==="shoulder"?"active":""} onClick={()=>setMode("shoulder")}>2ª</button>
   <button className={cameraMode==="third"?"active":""} onClick={()=>setMode("third")}>3ª</button>
-  <button className={cameraMode==="free"?"active":""} onClick={()=>setMode("free")}>FREE</button>
+  <button className={cameraMode==="free"?"active":""} onClick={()=>setMode("free")}>LIBRE</button><button onClick={()=>{cameraZoomTarget=Math.min(12,cameraZoomTarget+.8)}} aria-label="Alejar cámara">−</button><button onClick={()=>{cameraZoomTarget=Math.max(.65,cameraZoomTarget-.8)}} aria-label="Acercar cámara">+</button>
  </div><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
@@ -357,7 +364,9 @@ function meshFor(o){
   }
  }else{
   let geometry;
-  if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
+  const ox=Number(o.sx),oy=Number(o.sy),oz=Number(o.sz);
+  if(o.type==="cube"&&[ox,oy,oz].every(Number.isFinite)) geometry=new THREE.BoxGeometry(Math.max(.01,ox),Math.max(.01,oy),Math.max(.01,oz));
+  else if(o.type==="wall") geometry=new THREE.BoxGeometry(4,2,.35);
   else if(o.type==="light") geometry=new THREE.SphereGeometry(.42,24,16);
   else if(o.type==="spawn") geometry=new THREE.ConeGeometry(.55,1.2,4);
   else if(o.type==="camera") geometry=new THREE.BoxGeometry(1.1,.7,1.5);
@@ -599,85 +608,71 @@ function aiEditScene(scene,prompt){
  const next=JSON.parse(JSON.stringify(scene));
  const colors={rojo:"#ef4444",roja:"#ef4444",red:"#ef4444",azul:"#3b82f6",blue:"#3b82f6",verde:"#22c55e",green:"#22c55e",amarillo:"#facc15",amarilla:"#facc15",yellow:"#facc15",naranja:"#f97316",orange:"#f97316",rosa:"#ec4899",pink:"#ec4899",morado:"#a855f7",violeta:"#8b5cf6",purple:"#a855f7",blanco:"#f8fafc",blanca:"#f8fafc",white:"#f8fafc",negro:"#111827",negra:"#111827",black:"#111827",gris:"#64748b",gray:"#64748b",marron:"#8b5e3c",brown:"#8b5e3c",cian:"#06b6d4",turquesa:"#14b8a6",dorado:"#f59e0b"};
  const wantedColor=Object.entries(colors).find(([k])=>text.includes(k))?.[1]||null;
- const findObjects=(words)=>next.filter(o=>words.some(w=>(String(o.name)+" "+String(o.type)).toLowerCase().includes(w)));
- const wallWords=["muro","pared","wall"];
- const walls=findObjects(wallWords);
- const selectedObj=next.find(o=>String(o.id)===String(next._selected));
- let targets=null;
- if(text.includes("seleccionado")||text.includes("seleccionada"))targets=selectedObj?[selectedObj]:[];
- else if(text.includes("muro")||text.includes("pared")||text.includes("wall"))targets=walls;
- else if(text.includes("casa"))targets=findObjects(["casa"]);
- else if(text.includes("árbol")||text.includes("arbol"))targets=findObjects(["árbol","arbol","tree","pino"]);
- else if(text.includes("edificio"))targets=findObjects(["edificio","building"]);
- else if(text.includes("suelo")||text.includes("piso")||text.includes("terreno"))targets=findObjects(["suelo","floor","terreno"]);
- else if(text.includes("carretera")||text.includes("camino"))targets=findObjects(["carretera","road","camino"]);
- else if(text.includes("luz"))targets=findObjects(["luz","light","farola"]);
- const changed=[];
- const apply=(fn)=>{(targets===null?next:targets).forEach(o=>{fn(o);changed.push(o.id)})};
- if(wantedColor && (text.includes("cambia")||text.includes("cambiar")||text.includes("pon")||text.includes("color")||text.includes("haz"))){
-  apply(o=>{o.color=wantedColor});
- }
- if(/más grande|mas grande|agranda|agrandar|bigger|larger/.test(text))apply(o=>{o.s=Math.min(10,(Number(o.s)||1)*1.35)});
- if(/más pequeño|mas pequeño|pequeño|pequeña|encoge|reduc|smaller/.test(text)&&!text.includes("rectángulo"))apply(o=>{o.s=Math.max(.05,(Number(o.s)||1)*.75)});
- if(/metal|metálic|metallic/.test(text))apply(o=>{o.metalness=.9;o.roughness=.25});
- if(/mate|más rugoso|mas rugoso|rough/.test(text))apply(o=>{o.roughness=.85});
- if(/brillante|glossy|pulido/.test(text))apply(o=>{o.roughness=.12});
- if(/borra|borrar|elimina|eliminar|quita|quitar|delete|remove/.test(text)&&targets!==null&&targets.length){
-  const ids=new Set(targets.map(o=>o.id));return {scene:next.filter(o=>!ids.has(o.id)),message:"He borrado exactamente los objetos que pediste, sin generar otros."};
- }
- if(/mueve|mover|move/.test(text)){
-  const nums=text.match(/(?:a|to)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)/);
-  if(nums){const [x,y,z]=nums.slice(1).map(v=>Number(v.replace(",",".")));apply(o=>{o.x=x;o.y=y;o.z=z})}
- }
- if(/gira|girar|rota|rotar|rotate/.test(text)){
-  const deg=text.match(/(-?\d+(?:[.,]\d+)?)\s*(?:grados|degrees|°)/);
-  if(deg){const value=Number(deg[1].replace(",","."));apply(o=>{o.ry=value})}
- }
+ const hay=o=>(String(o.name)+" "+String(o.type)).toLowerCase();
+ const find=words=>next.filter(o=>words.some(w=>hay(o).includes(w)));
+ const selected=next.find(o=>String(o.id)===String(next._selected));
+ const walls=find(["muro","pared","wall"]);
+ let targets=[];
+ if(text.includes("seleccionado")||text.includes("seleccionada"))targets=selected?[selected]:[];
+ else if(/\bmuro\b|\bpared\b|\bwall\b/.test(text))targets=walls;
+ else if(/casa|house/.test(text))targets=find(["casa","house"]);
+ else if(/árbol|arbol|tree|pino/.test(text))targets=find(["árbol","arbol","tree","pino"]);
+ else if(/edificio|building/.test(text))targets=find(["edificio","building"]);
+ else if(/suelo|piso|terreno|floor/.test(text))targets=find(["suelo","piso","terreno","floor"]);
+ else if(/carretera|camino|road/.test(text))targets=find(["carretera","camino","road"]);
+ else if(/luz|light|farola/.test(text))targets=find(["luz","light","farola"]);
+ const apply=fn=>targets.forEach(fn);
+ if(wantedColor&&/(cambia|cambiar|pon|poner|color|haz|make|change|set)/.test(text))apply(o=>o.color=wantedColor);
 
- // Geometría precisa: un rectángulo/conector entre muros usa sus dimensiones y posiciones reales.
- // Nunca se sustituye por una colección arbitraria de cubos.
- if(/rectángulo|rectangulo/.test(text)&&walls.length){
-  const source=walls[0];
-  const second=walls[1]||null;
-  const baseS=Number(source.s)||1;
-  const wallLength=4*baseS,wallHeight=2*baseS,wallThickness=.35*baseS;
-  let x=Number(source.x)||0,y=(Number(source.y)||0),z=Number(source.z)||0;
-  let sx=wallLength,sy=wallHeight,sz=wallThickness;
-  if(second){
-   const x2=Number(second.x)||0,z2=Number(second.z)||0;
+ if(/rectángulo|rectangulo/.test(text)){
+  if(!walls.length)return {scene:next,message:"No he creado nada: necesito un muro existente para calcularlo."};
+  const source=walls[0],other=walls.slice(1).find(w=>w.id!==source.id)||null,s=Number(source.s)||1;
+  const wallLength=4*s,wallHeight=2*s,wallThickness=.35*s;
+  let x=Number(source.x)||0,y=Number(source.y)||0,z=Number(source.z)||0,sx=wallLength,sy=wallHeight,sz=wallThickness;
+  if(other){
+   const x2=Number(other.x)||0,z2=Number(other.z)||0,dx=x2-x,dz=z2-z,distance=Math.hypot(dx,dz);
+   if(distance<.01)return {scene:next,message:"No he creado nada: los dos muros coinciden."};
    x=(x+x2)/2;z=(z+z2)/2;
-   const dx=Math.abs(x2-(Number(source.x)||0)),dz=Math.abs(z2-(Number(source.z)||0));
-   if(dx>=dz){sx=Math.max(.1,dx);sz=wallThickness;sy=wallHeight}else{sz=Math.max(.1,dz);sx=wallThickness;sy=wallHeight}
+   if(Math.abs(dx)>=Math.abs(dz)){sx=distance;sz=wallThickness}else{sz=distance;sx=wallThickness}
   }
-  const small=/pequeñ|small/.test(text);
-  if(small){if(sx>=sz)sx=Math.min(sx,wallLength);else sz=Math.min(sz,wallLength)}
-  const item={id:"ai-rect-"+Date.now(),type:"cube",name:"Rectángulo IA",x,y,z,rx:0,ry:0,rz:0,s:1,sx,sy,sz,color:wantedColor||source.color||"#71809a",roughness:source.roughness??.55,metalness:source.metalness??.2};
-  next.push(item);
-  return {scene:next,message:second?"He creado un único rectángulo ajustado al hueco entre los dos muros, usando sus medidas reales.":"He creado un único rectángulo tomando las medidas del muro existente. No he añadido cubos extra."};
+  if(/pequeñ|small/.test(text)){if(sx>=sz)sx=Math.max(.25,Math.min(sx,wallLength*.5));else sz=Math.max(.25,Math.min(sz,wallLength*.5))}
+  next.push({id:"ai-rect-"+Date.now(),type:"cube",name:"Rectángulo IA",x,y,z,rx:0,ry:0,rz:0,s:1,sx,sy,sz,color:wantedColor||source.color||"#71809a",roughness:source.roughness??.55,metalness:source.metalness??.2});
+  return {scene:next,message:other?"He creado un único rectángulo entre los dos muros usando sus medidas.":"He creado un único rectángulo con las medidas del muro."};
  }
-
- // Añadir objetos: solo se crean los objetos nombrados. No se ejecuta el generador de mapas para una orden simple.
+ if(/borra|borrar|elimina|eliminar|quita|quitar|delete|remove/.test(text)){
+  if(!targets.length)return {scene:next,message:"No he borrado nada porque no hay un objetivo claro."};
+  const ids=new Set(targets.map(o=>o.id));return {scene:next.filter(o=>!ids.has(o.id)),message:"He borrado solo los objetos identificados."};
+ }
+ if(/más grande|mas grande|agranda|agrandar|bigger|larger/.test(text))apply(o=>o.s=Math.min(10,(Number(o.s)||1)*1.35));
+ if(/más pequeño|mas pequeño|encoge|reduc|smaller/.test(text))apply(o=>o.s=Math.max(.05,(Number(o.s)||1)*.75));
+ if(/metal|metálic|metallic/.test(text))apply(o=>{o.metalness=.9;o.roughness=.25});
+ if(/mate|más rugoso|mas rugoso|rough/.test(text))apply(o=>o.roughness=.85);
+ if(/brillante|glossy|pulido/.test(text))apply(o=>o.roughness=.12);
+ const nums=text.match(/(?:a|to)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)/);
+ if(/mueve|mover|move/.test(text)&&nums){const [x,y,z]=nums.slice(1).map(v=>Number(v.replace(",",".")));apply(o=>{o.x=x;o.y=y;o.z=z})}
+ const deg=text.match(/(-?\d+(?:[.,]\d+)?)\s*(?:grados|degrees|°)/);
+ if(/gira|girar|rota|rotar|rotate/.test(text)&&deg){const value=Number(deg[1].replace(",","."));apply(o=>o.ry=value)}
  if(/añade|anade|agrega|agregar|crea|crear|add|create/.test(text)){
   const specs=[];
   if(/árbol|arbol|tree|pino/.test(text))specs.push(["tree","Árbol IA"]);
   if(/casa|house/.test(text))specs.push(["house","Casa IA"]);
   if(/edificio|building/.test(text))specs.push(["building","Edificio IA"]);
-  if(/muro|pared|wall/.test(text)&&!text.includes("rectángulo")&&!text.includes("rectangulo"))specs.push(["wall","Muro IA"]);
+  if(/muro|pared|wall/.test(text))specs.push(["wall","Muro IA"]);
   if(/cubo|cube/.test(text))specs.push(["cube","Cubo IA"]);
   if(/esfera|sphere/.test(text))specs.push(["sphere","Esfera IA"]);
   if(/cámara|camara|camera/.test(text))specs.push(["camera","Cámara IA"]);
   if(/luz|light/.test(text))specs.push(["light","Luz IA"]);
-  const countMatch=text.match(/(?:dos|2|tres|3|cuatro|4|cinco|5|una|un)\s+(árbol|arbol|tree|pino|casa|house|edificio|building|cubo|cube|esfera|sphere)/);
-  const countMap={dos:2,2:2,tres:3,3:3,cuatro:4,4:4,cinco:5,5:5,una:1,un:1};
-  if(countMatch){const n=countMap[text.match(/(?:dos|2|tres|3|cuatro|4|cinco|5|una|un)/)?.[0]]||1;const base=specs[0];if(base){specs.length=0;for(let i=0;i<n;i++)specs.push([base[0],base[1]+" "+(i+1)])}}
-  specs.forEach(([type,name],i)=>{
-   const item={id:"ai-add-"+Date.now()+"-"+i,type,name,x:(Number(walls[0]?.x)||0)+i*2,y:type==="wall"?1:.5,z:(Number(walls[0]?.z)||0),rx:0,ry:0,rz:0,s:1,color:wantedColor||null,roughness:.55,metalness:.2};
-   next.push(item);
-  });
-  if(specs.length)return {scene:next,message:"He añadido únicamente los objetos que nombraste. La IA ya no genera un mapa entero para una orden simple."};
+  if(specs.length){
+   const chosen=specs[0],base=targets[0]||next.at(-1)||{x:0,z:0};
+   const countMatch=text.match(/(?:dos|2|tres|3|cuatro|4|cinco|5|una|un)\s+(?:árbol|arbol|tree|pino|casa|house|edificio|building|muro|pared|wall|cubo|cube|esfera|sphere)/);
+   const countMap={dos:2,2:2,tres:3,3:3,cuatro:4,4:4,cinco:5,5:5,una:1,un:1};
+   const count=countMatch?countMap[countMatch[0].split(/\s+/)[0]]||1:1;
+   for(let i=0;i<count;i++)next.push({id:"ai-add-"+Date.now()+"-"+i,type:chosen[0],name:chosen[1]+(count>1?" "+(i+1):""),x:(Number(base.x)||0)+i*.9,y:chosen[0]==="wall"?1:.5,z:Number(base.z)||0,rx:0,ry:0,rz:0,s:1,color:wantedColor||null,roughness:.55,metalness:.2});
+   return {scene:next,message:"He añadido únicamente lo que pediste. No he generado objetos extra."};
+  }
  }
- if(changed.length)return {scene:next,message:"He aplicado solo los cambios solicitados al entorno existente."};
- return {scene:next,message:"No he hecho cambios porque la orden no identifica con suficiente precisión qué objeto modificar. Así evitamos que la IA se invente cosas."};
+ const changed=next.some((o,i)=>JSON.stringify(o)!==JSON.stringify(scene[i]));
+ return {scene:next,message:changed?"He aplicado solo los cambios solicitados.":"No he cambiado nada porque la orden no identifica un objetivo claro."};
 }
 
 function describeScene(scene){
