@@ -727,130 +727,74 @@ const avatarItemLabel=item=>item?.assetType==="rigid"?"Accesorio rígido":item?.
 function ObjectStudio(){
  const[,t]=useLang();
  const{developer}=useUser();
- const[scene,setScene]=useState(()=>read("eskadin-scene",sceneSeed));
- const[selected,setSelected]=useState(()=>read("eskadin-object-studio-selection",scene[0]?.id||null));
- const[tool,setTool]=useState("select");
- const[grid,setGrid]=useState(true);
- const[snap,setSnap]=useState(false);
- const[wireframe,setWireframe]=useState(false);
- const[showAxes,setShowAxes]=useState(true);
- const[assetType,setAssetType]=useState("rigid");
- const[assetSubtype,setAssetSubtype]=useState("Hat");
- const[attachment,setAttachment]=useState("Hat");
- const[layerOrder,setLayerOrder]=useState(1);
- const[name,setName]=useState("Mi objeto");
+ const[assetType,setAssetType]=useState("layered");
+ const[category,setCategory]=useState("TShirt");
+ const[name,setName]=useState("Mi creación");
  const[description,setDescription]=useState("");
  const[price,setPrice]=useState(0);
+ const[animClip,setAnimClip]=useState("idle");
+ const[frame,setFrame]=useState(0);
  const[created,setCreated]=useState(false);
- const source=scene.find(o=>o.id===selected)||null;
- const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
- const add=type=>{
-  const id=Date.now();
-  const defaults={cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0]};
-  const p=defaults[type]||[0,.5,0];
-  const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};
-  setScene(s=>[...s,item]);setSelected(id);setName(item.name);
+ const categories={
+  layered:[["TShirt","Camiseta 3D"],["Shirt","Camisa"],["Sweater","Jersey"],["Pants","Pantalón 3D"],["DressSkirt","Vestido / Falda"],["Shorts","Shorts"],["Shoes","Zapatos"]],
+  rigid:[["Hair","Cabello"],["Hat","Sombrero"],["Face","Cara"],["Neck","Cuello"],["Shoulder","Hombro"],["Front","Frontal"],["Back","Espalda"],["Waist","Cintura"]],
+  classic:[["ClassicTShirt","Camiseta clásica"],["ClassicShirt","Camisa clásica"],["ClassicPants","Pantalón clásico"]],
+  animation:[["Idle","Idle"],["Walk","Caminar"],["Run","Correr"],["Jump","Saltar"],["Fall","Caer"],["Emote","Emote"]]
  };
  const convert=()=>{
-  if(!source)return;
   const now=Date.now();
-  const item={
-   id:"asset-"+now,
-   name:name.trim()||source.name||"Objeto de Eskådin",
-   description:description.trim(),
-   creator:developer?.name||"Eskådin Creator",
-   assetType,
-   subtype:assetSubtype,
-   attachment:assetType==="rigid"?attachment:null,
-   attachmentName:assetType==="rigid"?AVATAR_ATTACHMENT_NAMES[attachment]||"HatAttachment":null,
-   layerOrder:assetType==="layered"?Math.max(1,Math.min(10,Number(layerOrder)||1)):null,
-   price:Math.max(0,Math.floor(Number(price)||0)),
-   source:{type:source.type,color:source.color,roughness:source.roughness,metalness:source.metalness,s:source.s},
-   status:"published",
-   createdAt:new Date(now).toISOString()
-  };
-  const next=[item,...createdAvatarItems()];
-  saveCreatedAvatarItems(next);
-  const owned=avatarCustomOwned();
-  if(!owned.includes(item.id))saveAvatarCustomOwned([...owned,item.id]);
-  setCreated(true);
-  setTimeout(()=>setCreated(false),1800);
+  const item={id:"asset-"+now,name:name.trim()||"Creación de Eskådin",description:description.trim(),creator:developer?.name||"Eskådin Creator",assetType,subtype:category,animation:assetType==="animation"?{clip:animClip,frames:Math.max(1,Number(frame)||1)}:null,price:Math.max(0,Math.floor(Number(price)||0)),status:"published",createdAt:new Date(now).toISOString()};
+  const next=[item,...createdAvatarItems()];saveCreatedAvatarItems(next);
+  const owned=avatarCustomOwned();if(!owned.includes(item.id))saveAvatarCustomOwned([...owned,item.id]);
+  setCreated(true);setTimeout(()=>setCreated(false),1800);
  };
- useEffect(()=>{save("eskadin-scene",scene);save("eskadin-object-studio-selection",selected)},[scene,selected]);
- useEffect(()=>{
-  const list=AVATAR_ASSET_TYPES[assetType]||[];
-  if(list.length&&!list.some(([v])=>v===assetSubtype))setAssetSubtype(list[0][0]);
- },[assetType]);
- useEffect(()=>{
-  if(assetType==="rigid"&&!AVATAR_ASSET_TYPES.rigid.some(([v])=>v===attachment))setAttachment("Hat");
- },[assetType,attachment]);
+ const isAnim=assetType==="animation";
+ const previewClass="object-studio-creator-preview";
  return <main className="object-studio-page">
   <header className="object-studio-header">
-   <div><span className="roblox-kicker">OBJECT STUDIO</span><h1>Crea objetos para tu avatar</h1><p>Construye el modelo en el editor, ajústalo y conviértelo en un artículo del Mercado.</p></div>
-   <div className="object-studio-header-actions"><Link className="roblox-pill" to="/editor">Volver al Studio</Link><Link className="roblox-pill" to="/marketplace">Mercado</Link></div>
+   <div><span className="roblox-kicker">OBJECT STUDIO</span><h1>Crea ropa, accesorios y animaciones</h1><p>Un creador de artículos de avatar, no un editor de mapas.</p></div>
+   <div className="object-studio-header-actions"><Link className="roblox-pill" to="/avatar">Avatar</Link><Link className="roblox-pill" to="/marketplace">Mercado</Link></div>
   </header>
-  <div className="object-studio-layout">
+  <div className="object-studio-layout object-studio-creator-layout">
    <aside className="object-studio-panel">
-    <div className="object-studio-panel-title">1 · Modelo</div>
-    <div className="object-studio-create-grid">
-     {["cube","sphere","cylinder","cone","torus","capsule"].map(type=><button key={type} onClick={()=>add(type)}>＋ {type}</button>)}
+    <div className="object-studio-panel-title">1 · Tipo de creación</div>
+    <div className="object-studio-type-grid">
+     <button className={assetType==="layered"?"chosen":""} onClick={()=>{setAssetType("layered");setCategory("TShirt")}}>👕 Ropa en capas</button>
+     <button className={assetType==="classic"?"chosen":""} onClick={()=>{setAssetType("classic");setCategory("ClassicTShirt")}}>🖼️ Ropa clásica</button>
+     <button className={assetType==="rigid"?"chosen":""} onClick={()=>{setAssetType("rigid");setCategory("Hat")}}>🎩 Accesorio</button>
+     <button className={assetType==="animation"?"chosen":""} onClick={()=>{setAssetType("animation");setCategory("Idle")}}>🕺 Animación</button>
     </div>
-    <div className="object-studio-panel-title">Objetos de la escena</div>
-    <div className="object-studio-scene-list">
-     {scene.map(o=><button key={o.id} className={selected===o.id?"chosen":""} onClick={()=>{setSelected(o.id);setName(o.name)}}>{o.name}<small>{o.type}</small></button>)}
-    </div>
+    <div className="object-studio-panel-title">2 · Categoría</div>
+    <select value={category} onChange={e=>setCategory(e.target.value)}>
+     {categories[assetType].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+    </select>
+    {!isAnim&&<div className="object-studio-creator-tools">
+     <button>＋ Añadir forma</button><button>◈ Añadir malla</button><button>▧ Textura</button><button>✥ Ajustar al avatar</button>
+    </div>}
+    {isAnim&&<div className="object-studio-creator-tools">
+     <button onClick={()=>setFrame(f=>Math.max(0,f-1))}>◀ Frame</button><button onClick={()=>setFrame(f=>f+1)}>Frame ▶</button><button onClick={()=>setFrame(0)}>↺ Inicio</button>
+    </div>}
    </aside>
    <section className="object-studio-preview">
-    <div className="object-studio-preview-bar"><b>PREVISUALIZACIÓN 3D</b><span>{source?source.name:"Selecciona un objeto"}</span></div>
-    <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
-    <div className="object-studio-tools">
-     <button className={tool==="select"?"chosen":""} onClick={()=>setTool("select")}>↖ Seleccionar</button>
-     <button className={tool==="move"?"chosen":""} onClick={()=>setTool("move")}>✥ Mover</button>
-     <button className={tool==="rotate"?"chosen":""} onClick={()=>setTool("rotate")}>↻ Rotar</button>
-     <button className={tool==="scale"?"chosen":""} onClick={()=>setTool("scale")}>⤢ Escalar</button>
-     <button className={grid?"chosen":""} onClick={()=>setGrid(v=>!v)}>▦ Grid</button>
-     <button className={snap?"chosen":""} onClick={()=>setSnap(v=>!v)}>⌗ Snap</button>
-     <button className={wireframe?"chosen":""} onClick={()=>setWireframe(v=>!v)}>◇ Wire</button>
-     <button className={showAxes?"chosen":""} onClick={()=>setShowAxes(v=>!v)}>XYZ</button>
+    <div className="object-studio-preview-bar"><b>{isAnim?"EDITOR DE ANIMACIÓN":"EDITOR DE AVATAR"}</b><span>{isAnim?animClip:"Vista previa sobre R15"}</span></div>
+    <div className={previewClass}>
+     <div className="creator-avatar-placeholder"><div className="creator-avatar-head"/><div className="creator-avatar-torso"/><div className="creator-avatar-leg left"/><div className="creator-avatar-leg right"/></div>
+     <div className="creator-preview-grid"/>
     </div>
+    {isAnim&&<div className="object-studio-timeline"><span>0</span><input type="range" min="0" max="120" value={frame} onChange={e=>setFrame(e.target.value)}/><span>{frame}</span><button onClick={()=>setFrame(0)}>▶︎ Preview</button></div>}
    </section>
    <aside className="object-studio-panel object-studio-inspector">
-    <div className="object-studio-panel-title">2 · Tipo de artículo</div>
-    <div className="object-studio-type-grid">
-     <button className={assetType==="rigid"?"chosen":""} onClick={()=>setAssetType("rigid")}>🧢 Accesorio rígido</button>
-     <button className={assetType==="layered"?"chosen":""} onClick={()=>setAssetType("layered")}>👕 Ropa en capas</button>
-     <button className={assetType==="classic"?"chosen":""} onClick={()=>setAssetType("classic")}>🖼️ Ropa clásica</button>
-    </div>
+    <div className="object-studio-panel-title">3 · Publicación</div>
     <label>Nombre<input value={name} onChange={e=>setName(e.target.value)} placeholder="Nombre del artículo"/></label>
-    <label>Descripción<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Describe el artículo…"/></label>
-    <label>Categoría
-     <select value={assetSubtype} onChange={e=>setAssetSubtype(e.target.value)}>
-      {(AVATAR_ASSET_TYPES[assetType]||[]).map(([v,l])=><option key={v} value={v}>{l}</option>)}
-     </select>
-    </label>
-    {assetType==="rigid"&&<label>Punto de fijación
-     <select value={attachment} onChange={e=>setAttachment(e.target.value)}>
-      {AVATAR_ASSET_TYPES.rigid.map(([v,l])=><option key={v} value={v}>{l} · {AVATAR_ATTACHMENT_NAMES[v]}</option>)}
-     </select>
-    </label>}
-    {assetType==="layered"&&<label>Capa de ropa
-     <input type="number" min="1" max="10" value={layerOrder} onChange={e=>setLayerOrder(e.target.value)}/>
-    </label>}
+    <label>Descripción<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Describe tu creación…"/></label>
+    {isAnim?<><label>Animación<select value={animClip} onChange={e=>setAnimClip(e.target.value)}><option value="idle">Idle</option><option value="walk">Caminar</option><option value="run">Correr</option><option value="jump">Saltar</option><option value="fall">Caer</option><option value="emote">Emote</option></select></label><div className="object-studio-checks"><span>✓ Rig R15</span><span>✓ Timeline</span><span>✓ Poses por frame</span></div></>:<div className="object-studio-checks"><span>✓ Previsualización en avatar</span><span>✓ Tipo: {categories[assetType].find(([v])=>v===category)?.[1]}</span>{assetType==="layered"&&<span>✓ Preparado para rigging, cages y attachments</span>}</div>}
     <label>Precio F¢<input type="number" min="0" step="1" value={price} onChange={e=>setPrice(e.target.value)}/></label>
-    <div className="object-studio-checks">
-     <span>✓ Modelo seleccionado</span>
-     <span>✓ Metadatos de artículo</span>
-     {assetType==="rigid"&&<span>✓ Attachment: {AVATAR_ATTACHMENT_NAMES[attachment]}</span>}
-     {assetType==="layered"&&<span>✓ WrapLayer + cage (simulado por Eskådin)</span>}
-     {assetType==="classic"&&<span>✓ Plantilla clásica asociada al objeto</span>}
-    </div>
-    <button className="button button-primary object-studio-generate" disabled={!source} onClick={convert}>{created?"✓ Publicado en Mercado":"Convertir y publicar en Mercado"}</button>
-    <p className="object-studio-note">Los artículos creados aquí se guardan en tu Mercado local y pasan a estar disponibles para tu inventario en este dispositivo.</p>
+    <button className="button button-primary object-studio-generate" onClick={convert}>{created?"✓ Publicado en Mercado":"Publicar creación"}</button>
+    <p className="object-studio-note">Las creaciones se guardan en el Mercado local de Eskådin y quedan asociadas a tu inventario en este dispositivo.</p>
    </aside>
   </div>
  </main>
 }
-
 function AvatarEditor(){
  const[,t]=useLang();const{user,login}=useUser();const current=user||{name:"Eskådin Player",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
  const[form,setForm]=useState(current);const saveProfile=()=>{login(form);save("eskadin-avatar",form)};const set=(k,v)=>setForm(x=>({...x,[k]:v}));
