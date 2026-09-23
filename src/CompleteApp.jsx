@@ -51,24 +51,25 @@ function useGames(){const[games,setGames]=useState(()=>{if(localStorage.getItem(
 
 function RootRoute(){const{user}=useUser();return user?<Games/>:<Register/>}
 function Shell({children}){const[lang,t]=useLang();const{setLang}=useContext(LangContext);const{user,developer}=useUser();const location=useLocation();const[menuOpen,setMenuOpen]=useState(false);useEffect(()=>setMenuOpen(false),[location.pathname]);if(location.pathname==="/editor")return <div className="app-shell studio-app">{children}</div>;return <div className="app-shell"><div className="wrap"><header className="nav"><div className="nav-left"><button type="button" className="global-menu-button" aria-label={t.menu} aria-expanded={menuOpen} onClick={()=>setMenuOpen(v=>!v)}>{menuOpen?"×":"☰"}</button><Link className="global-brand" to={user?"/home":"/"} onClick={()=>setMenuOpen(false)}>Eskådin <span>Stüdis</span><sup>®</sup></Link></div></header>{menuOpen&&<button type="button" className="global-sidebar-backdrop" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}<aside className={"global-sidebar "+(menuOpen?"open":"")} aria-hidden={!menuOpen}><div className="global-sidebar-brand"><Link to={user?"/home":"/"} onClick={()=>setMenuOpen(false)}>Eskådin <span>Stüdis</span><sup>®</sup></Link></div><nav className="global-sidebar-links"><NavLink to="/games" onClick={()=>setMenuOpen(false)}>{t.explore}</NavLink><NavLink to="/marketplace" onClick={()=>setMenuOpen(false)}>Mercado</NavLink><NavLink to="/avatar" onClick={()=>setMenuOpen(false)}>Avatar</NavLink><NavLink to="/editor" onClick={()=>setMenuOpen(false)}>{t.create}</NavLink><NavLink to="/projects" onClick={()=>setMenuOpen(false)}>Mis juegos</NavLink><NavLink to="/object-studio" onClick={()=>setMenuOpen(false)}>Object Studio</NavLink><NavLink to="/missions" onClick={()=>setMenuOpen(false)}>{t.missions}</NavLink><NavLink to="/developer" onClick={()=>setMenuOpen(false)}>{t.developer}</NavLink></nav><div className="global-sidebar-section">{t.language}</div><select className="lang global-sidebar-lang" value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><div className="global-sidebar-account">{developer?<Link className="avatar-link dev-avatar" to="/developer/account" onClick={()=>setMenuOpen(false)}>DEV</Link>:user?<Link className="account-menu-link" to="/account" onClick={()=>setMenuOpen(false)}>{user.name.slice(0,2).toUpperCase()} · {user.name}</Link>:<><Link className="button button-ghost small" to="/register" onClick={()=>setMenuOpen(false)}>{t.register}</Link><Link className="button button-primary small" to="/login" onClick={()=>setMenuOpen(false)}>{t.login}</Link></>}</div></aside>{children}<footer className="footer"><span>© 2026 Eskådin Stüdis®</span><span>0 ads · 0 real-money purchases · F¢ gameplay-only</span></footer></div></div>}
-function R15AvatarPreview({user,size="md"}){
+function R15AvatarPreview({user,size="md",customItem}){
  const ref=useRef(null);
  useEffect(()=>{
   const host=ref.current;if(!host)return;
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b0f16);
-  const camera=new THREE.PerspectiveCamera(28,1,.1,100);camera.position.set(4.2,2.6,7.2);camera.lookAt(0,1.45,0);
+  const camera=new THREE.PerspectiveCamera(28,1,.1,100);camera.position.set(4.4,2.8,7.4);camera.lookAt(0,1.45,0);
   const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
   host.replaceChildren(renderer.domElement);renderer.domElement.style.width="100%";renderer.domElement.style.height="100%";
-  scene.add(new THREE.HemisphereLight(0xffffff,0x273044,2.1));
-  const key=new THREE.DirectionalLight(0xffffff,2.4);key.position.set(3,6,5);scene.add(key);
-  const avatar=createEskadinR15Avatar(user||{});scene.add(avatar);
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(2.1,48),new THREE.MeshStandardMaterial({color:0x151b26,roughness:.9}));floor.rotation.x=-Math.PI/2;floor.position.y=.01;scene.add(floor);
-  let raf=0;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x273044,2.15));
+  const key=new THREE.DirectionalLight(0xffffff,2.8);key.position.set(3,7,5);key.castShadow=true;scene.add(key);
+  const fill=new THREE.DirectionalLight(0x7aa7ff,1.0);fill.position.set(-4,3,-2);scene.add(fill);
+  const avatar=createEskadinR15Avatar({...user,objectItems:customItem?[customItem]:user?.objectItems});scene.add(avatar);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(2.25,64),new THREE.MeshStandardMaterial({color:0x151b26,roughness:.9}));floor.rotation.x=-Math.PI/2;floor.position.y=.01;floor.receiveShadow=true;scene.add(floor);
+  let raf=0;const clock=new THREE.Clock();
   const resize=()=>{const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
   resize();const ro=new ResizeObserver(resize);ro.observe(host);
-  const tick=()=>{raf=requestAnimationFrame(tick);avatar.rotation.y+=.004;renderer.render(scene,camera)};tick();
-  return()=>{cancelAnimationFrame(raf);ro.disconnect();scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const m=Array.isArray(o.material)?o.material:[o.material];m.forEach(x=>x.dispose())}});renderer.dispose();host.replaceChildren()};
- },[user]);
+  const tick=()=>{raf=requestAnimationFrame(tick);const time=clock.getElapsedTime();avatar.userData.animate?.(time,false,true);avatar.rotation.y=Math.sin(time*.35)*.10;renderer.render(scene,camera)};tick();
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(x=>x.dispose())}});renderer.dispose();host.replaceChildren()};
+ },[user,customItem]);
  return <div className={"avatar-r15-preview avatar-"+size} ref={ref} aria-label={user?.name||"R15 avatar"}/>;
 }
 function Avatar({user,size="md"}){
@@ -101,52 +102,63 @@ function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=
 function createEskadinR15Avatar(user={}){
  const root=new THREE.Group();root.name="EskadinR15";
  const hex=v=>{if(typeof v==="number")return v;const n=parseInt(String(v||"").replace("#",""),16);return Number.isFinite(n)?n:0xf2c7a5};
- const skin=new THREE.MeshStandardMaterial({color:hex(user.skin||"#f2c7a5"),roughness:.76,metalness:0});
- const shirt=new THREE.MeshStandardMaterial({color:hex(user.shirt||"#5b7cff"),roughness:.72,metalness:0});
- const pants=new THREE.MeshStandardMaterial({color:hex(user.pants||"#202638"),roughness:.8,metalness:0});
- const hair=new THREE.MeshStandardMaterial({color:hex(user.hairColor||"#241b18"),roughness:.68,metalness:0});
- const accessory=new THREE.MeshStandardMaterial({color:hex(user.accessoryColor||"#e95d6a"),roughness:.62,metalness:.08});
+ const mat=(color,rough=.72,metal=0)=>new THREE.MeshStandardMaterial({color:hex(color),roughness:rough,metalness:metal});
+ const skin=mat(user.skin||"#f2c7a5",.78),shirt=mat(user.shirt||"#5b7cff",.7),pants=mat(user.pants||"#202638",.82),shoe=mat(user.shoe||"#151a25",.8),hair=mat(user.hairColor||"#241b18",.62),accent=mat(user.accentColor||"#e95d6a",.55,.08);
+ const sx=Math.max(.82,Math.min(1.18,Number(user.bodyWidth)||1)),sy=Math.max(.9,Math.min(1.12,Number(user.bodyHeight)||1)),hs=Math.max(.86,Math.min(1.18,Number(user.headScale)||1));
  const bone=(name,x,y,z,parent=root)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g};
- const mesh=(p,name,w,h,d,mat,round=.06)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);p.add(g);return g};
- const scaleX=Math.max(.78,Math.min(1.22,Number(user.bodyWidth)||1));
- const scaleY=Math.max(.88,Math.min(1.14,Number(user.bodyHeight)||1));
- const headScale=Math.max(.85,Math.min(1.18,Number(user.headScale)||1));
- const lowerTorso=bone("LowerTorso",0,1.47*scaleY,0);
- const upperTorso=bone("UpperTorso",0,.55*scaleY,0,lowerTorso);
- const neck=bone("Neck",0,.42*scaleY,0,upperTorso);
- const head=bone("Head",0,.36*scaleY,0,neck);
- const lUL=bone("LeftUpperLeg",-.27*scaleX,-.34*scaleY,0,lowerTorso),lLL=bone("LeftLowerLeg",0,-.59*scaleY,0,lUL),lF=bone("LeftFoot",0,-.56*scaleY,-.12,lLL);
- const rUL=bone("RightUpperLeg",.27*scaleX,-.34*scaleY,0,lowerTorso),rLL=bone("RightLowerLeg",0,-.59*scaleY,0,rUL),rF=bone("RightFoot",0,-.56*scaleY,-.12,rLL);
- const lUA=bone("LeftUpperArm",-.67*scaleX,.27*scaleY,0,upperTorso),lLA=bone("LeftLowerArm",0,-.55*scaleY,0,lUA),lH=bone("LeftHand",0,-.49*scaleY,0,lLA);
- const rUA=bone("RightUpperArm",.67*scaleX,.27*scaleY,0,upperTorso),rLA=bone("RightLowerArm",0,-.55*scaleY,0,rUA),rH=bone("RightHand",0,-.49*scaleY,0,rLA);
- mesh(lowerTorso,"LowerTorsoMesh",.86*scaleX,.50*scaleY,.48,shirt);
- mesh(upperTorso,"UpperTorsoMesh",1.02*scaleX,.68*scaleY,.52,shirt);
- const headMesh=mesh(head,"HeadMesh",.66*headScale,.68*headScale,.66*headScale,skin);
- mesh(lUL,"LeftUpperLegMesh",.44*scaleX,.68*scaleY,.46,pants);mesh(lLL,"LeftLowerLegMesh",.40*scaleX,.62*scaleY,.42,pants);mesh(lF,"LeftFootMesh",.46*scaleX,.22*scaleY,.72,pants);
- mesh(rUL,"RightUpperLegMesh",.44*scaleX,.68*scaleY,.46,pants);mesh(rLL,"RightLowerLegMesh",.40*scaleX,.62*scaleY,.42,pants);mesh(rF,"RightFootMesh",.46*scaleX,.22*scaleY,.72,pants);
- mesh(lUA,"LeftUpperArmMesh",.36*scaleX,.56*scaleY,.40,shirt);mesh(lLA,"LeftLowerArmMesh",.32*scaleX,.52*scaleY,.36,skin);mesh(lH,"LeftHandMesh",.34*scaleX,.28*scaleY,.34,skin);
- mesh(rUA,"RightUpperArmMesh",.36*scaleX,.56*scaleY,.40,shirt);mesh(rLA,"RightLowerArmMesh",.32*scaleX,.52*scaleY,.36,skin);mesh(rH,"RightHandMesh",.34*scaleX,.28*scaleY,.34,skin);
- const hairType=user.hair||"classic";
- if(hairType!=="none"){
-  const h=new THREE.Mesh(new THREE.BoxGeometry(.72*headScale,.28*headScale,.70*headScale),hair.clone());h.position.set(0,.31*headScale,.02);h.scale.set(1,.72,1);h.castShadow=true;head.add(h);
- }
- const faceType=user.face||"smile";
- const face=new THREE.Group();face.name="Face";
- const eyeMat=new THREE.MeshBasicMaterial({color:0x151922});
- [-.13,.13].forEach(x=>{const eye=new THREE.Mesh(new THREE.SphereGeometry(.035*headScale,12,8),eyeMat);eye.position.set(x*headScale,.04,.325*headScale);face.add(eye)});
- if(faceType==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.42*headScale,.07,.035),new THREE.MeshStandardMaterial({color:0x111827,roughness:.3,metalness:.2}));glasses.position.set(0,.05,.345*headScale);face.add(glasses)}
+ const box=(parent,name,w,h,d,material,r=.08)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
+ const sphere=(parent,name,r,material)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
+ const lower=bone("LowerTorso",0,1.58*sy,0),upper=bone("UpperTorso",0,.53*sy,0,lower),neck=bone("Neck",0,.43*sy,0,upper),head=bone("Head",0,.32*sy,0,neck);
+ const lUL=bone("LeftUpperLeg",-.28*sx,-.36*sy,0,lower),lLL=bone("LeftLowerLeg",0,-.60*sy,0,lUL),lF=bone("LeftFoot",0,-.55*sy,-.16,lLL);
+ const rUL=bone("RightUpperLeg",.28*sx,-.36*sy,0,lower),rLL=bone("RightLowerLeg",0,-.60*sy,0,rUL),rF=bone("RightFoot",0,-.55*sy,-.16,rLL);
+ const lUA=bone("LeftUpperArm",-.70*sx,.29*sy,0,upper),lLA=bone("LeftLowerArm",0,-.53*sy,0,lUA),lH=bone("LeftHand",0,-.48*sy,0,lLA);
+ const rUA=bone("RightUpperArm",.70*sx,.29*sy,0,upper),rLA=bone("RightLowerArm",0,-.53*sy,0,rUA),rH=bone("RightHand",0,-.48*sy,0,rLA);
+ box(lower,"LowerTorsoMesh",.84*sx,.48*sy,.46,shirt);box(upper,"UpperTorsoMesh",1.04*sx,.66*sy,.52,shirt);
+ sphere(head,"HeadMesh",.39*hs,skin);
+ box(lUL,"LeftUpperLegMesh",.42*sx,.70*sy,.42,pants);box(lLL,"LeftLowerLegMesh",.38*sx,.62*sy,.40,pants);box(lF,"LeftFootMesh",.46*sx,.22*sy,.72,shoe);
+ box(rUL,"RightUpperLegMesh",.42*sx,.70*sy,.42,pants);box(rLL,"RightLowerLegMesh",.38*sx,.62*sy,.40,pants);box(rF,"RightFootMesh",.46*sx,.22*sy,.72,shoe);
+ box(lUA,"LeftUpperArmMesh",.36*sx,.58*sy,.38,shirt);box(lLA,"LeftLowerArmMesh",.32*sx,.52*sy,.34,skin);sphere(lH,"LeftHandMesh",.18*sx,skin);
+ box(rUA,"RightUpperArmMesh",.36*sx,.58*sy,.38,shirt);box(rLA,"RightLowerArmMesh",.32*sx,.52*sy,.34,skin);sphere(rH,"RightHandMesh",.18*sx,skin);
+
+ const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.4});
+ [-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.035*hs,12,8),eyeMat);e.position.set(x*hs,.02,.365*hs);face.add(e)});
+ const mouth=new THREE.Mesh(new THREE.BoxGeometry(.16*hs,.025,.018),eyeMat);mouth.position.set(0,-.11*hs,.36*hs);face.add(mouth);
+ if(user.face==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.48*hs,.06,.035),new THREE.MeshStandardMaterial({color:0x151922,metalness:.25,roughness:.3}));glasses.position.set(0,.03,.38*hs);face.add(glasses)}
  head.add(face);
+
+ const hairType=user.hair||"classic";
+ if(hairType!=="none"){const h=hairType==="short"?box(head,"Hair",.72*hs,.26*hs,.70*hs,hair):sphere(head,"Hair",.40*hs,hair);h.position.set(0,.28*hs,.01);if(hairType==="long"){const back=box(head,"LongHairBack",.62*hs,.62*hs,.30*hs,hair);back.position.set(0,.02*hs,-.25*hs)}}
  const hatType=user.hat||"none";
- if(hatType==="cap"){const cap=new THREE.Mesh(new THREE.BoxGeometry(.78*headScale,.16,.74*headScale),accessory.clone());cap.position.set(0,.48*headScale,.02);cap.castShadow=true;head.add(cap)}
- if(hatType==="crown"){const crown=new THREE.Mesh(new THREE.CylinderGeometry(.30*headScale,.38*headScale,.18*headScale,6),new THREE.MeshStandardMaterial({color:0xffd447,metalness:.65,roughness:.28}));crown.position.y=.50*headScale;crown.castShadow=true;head.add(crown)}
- const attachments={};const attach=(name,parent,pos)=>{const a=new THREE.Object3D();a.name=name;a.position.set(...pos);parent.add(a);attachments[name]=a};
- attach("HairAttachment",head,[0,.39*headScale,0]);attach("HatAttachment",head,[0,.44*headScale,0]);attach("FaceFrontAttachment",head,[0,0,.34*headScale]);attach("NeckAttachment",neck,[0,.03,0]);
- attach("RightShoulderAttachment",rUA,[0,.28*scaleY,0]);attach("LeftShoulderAttachment",lUA,[0,.28*scaleY,0]);attach("BodyFrontAttachment",upperTorso,[0,.1*scaleY,.27]);attach("BodyBackAttachment",upperTorso,[0,.1*scaleY,-.27]);attach("WaistCenterAttachment",lowerTorso,[0,-.22*scaleY,0]);
- root.userData.avatarParts=15;root.userData.r15=true;root.userData.height=3.13*scaleY;root.userData.scale={bodyWidth:scaleX,bodyHeight:scaleY,headScale};root.userData.attachments=attachments;
+ if(hatType==="cap"){const cap=box(head,"Cap",.82*hs,.16*hs,.76*hs,accent);cap.position.set(0,.43*hs,.02);const brim=box(head,"CapBrim",.46*hs,.06,.28*hs,accent);brim.position.set(0,.38*hs,.34*hs)}
+ if(hatType==="crown"){const crown=new THREE.Mesh(new THREE.CylinderGeometry(.31*hs,.38*hs,.20*hs,8),new THREE.MeshStandardMaterial({color:0xffd447,metalness:.65,roughness:.25}));crown.position.y=.46*hs;crown.castShadow=true;head.add(crown)}
+
+ const attachments={};
+ const attach=(name,parent,pos)=>{const a=new THREE.Object3D();a.name=name;a.position.set(...pos);parent.add(a);attachments[name]=a};
+ attach("HairAttachment",head,[0,.39*hs,0]);attach("HatAttachment",head,[0,.44*hs,0]);attach("FaceFrontAttachment",head,[0,0,.38*hs]);attach("NeckAttachment",neck,[0,.04,0]);
+ attach("RightShoulderAttachment",rUA,[0,.29*sy,0]);attach("LeftShoulderAttachment",lUA,[0,.29*sy,0]);attach("BodyFrontAttachment",upper,[0,.10*sy,.27]);attach("BodyBackAttachment",upper,[0,.10*sy,-.27]);attach("WaistCenterAttachment",lower,[0,-.22*sy,0]);
+
+ const addCustomItem=item=>{
+  if(!item||item.enabled===false)return;
+  const target=attachments[item.attachment]||attachments.HatAttachment;
+  const color=mat(item.color||"#e95d6a",.58,.05),shape=item.shape||"box";
+  let obj;
+  if(shape==="sphere")obj=new THREE.Mesh(new THREE.SphereGeometry(.28,18,12),color);
+  else if(shape==="cylinder")obj=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.52,16),color);
+  else obj=new THREE.Mesh(new THREE.BoxGeometry(.52,.28,.42),color);
+  obj.name="CustomItem";obj.castShadow=true;obj.receiveShadow=true;
+  obj.position.set(Number(item.x)||0,Number(item.y)||0,Number(item.z)||0);
+  obj.rotation.set(Number(item.rx)||0,Number(item.ry)||0,Number(item.rz)||0);
+  obj.scale.set(Math.max(.05,Number(item.sx)||1),Math.max(.05,Number(item.sy)||1),Math.max(.05,Number(item.sz)||1));
+  target.add(obj);
+ };
+ (Array.isArray(user.objectItems)?user.objectItems:[]).forEach(addCustomItem);
+
+ root.userData.avatarParts=15;root.userData.r15=true;root.userData.height=3.18*sy;root.userData.attachments=attachments;
  root.userData.r15Joints=[["LowerTorso","UpperTorso"],["UpperTorso","Neck"],["Neck","Head"],["LowerTorso","LeftUpperLeg"],["LeftUpperLeg","LeftLowerLeg"],["LeftLowerLeg","LeftFoot"],["LowerTorso","RightUpperLeg"],["RightUpperLeg","RightLowerLeg"],["RightLowerLeg","RightFoot"],["UpperTorso","LeftUpperArm"],["LeftUpperArm","LeftLowerArm"],["LeftLowerArm","LeftHand"],["UpperTorso","RightUpperArm"],["RightUpperArm","RightLowerArm"],["RightLowerArm","RightHand"]];
- root.userData.animate=(time,moving,grounded)=>{const w=moving?Math.sin(time*9)*.55:0,idle=Math.sin(time*2.2)*.018;lUL.rotation.x=w;rUL.rotation.x=-w;lLL.rotation.x=Math.max(0,-w)*.45;rLL.rotation.x=Math.max(0,w)*.45;lF.rotation.x=-w*.18;rF.rotation.x=w*.18;lUA.rotation.x=-w*.7;rUA.rotation.x=w*.7;lLA.rotation.x=Math.abs(w)*.18;rLA.rotation.x=Math.abs(w)*.18;upperTorso.rotation.z=idle*.45;neck.rotation.z=idle*.2;if(!grounded){lUL.rotation.x=-.18;rUL.rotation.x=.18;lUA.rotation.x=.28;rUA.rotation.x=-.28}};
+ root.userData.animate=(time,moving,grounded)=>{const walk=moving?Math.sin(time*8.5)*.62:0,idle=Math.sin(time*2.1)*.018;lUL.rotation.x=walk;rUL.rotation.x=-walk;lLL.rotation.x=Math.max(0,-walk)*.42;rLL.rotation.x=Math.max(0,walk)*.42;lF.rotation.x=-walk*.15;rF.rotation.x=walk*.15;lUA.rotation.x=-walk*.55;rUA.rotation.x=walk*.55;lLA.rotation.x=Math.abs(walk)*.12;rLA.rotation.x=Math.abs(walk)*.12;upper.rotation.z=idle*.5;neck.rotation.z=idle*.25;if(!grounded){lUL.rotation.x=-.22;rUL.rotation.x=.22;lUA.rotation.x=.34;rUA.rotation.x=-.34}};
  return root;
 }
+
 function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const{user}=useUser();
  const[chatOpen,setChatOpen]=useState(false);
@@ -645,95 +657,61 @@ const saveAvatarCustomOwned=ids=>save("eskadin-owned-created-avatar-items",ids);
 const avatarItemLabel=item=>item?.assetType==="rigid"?"Accesorio rígido":item?.assetType==="layered"?"Ropa en capas":"Ropa clásica";
 
 function ObjectStudio(){
- const[,t]=useLang();
- const{developer}=useUser();
- const[assetType,setAssetType]=useState("layered");
- const[category,setCategory]=useState("TShirt");
- const[name,setName]=useState("Mi creación");
- const[description,setDescription]=useState("");
- const[price,setPrice]=useState(0);
- const[animClip,setAnimClip]=useState("idle");
- const[frame,setFrame]=useState(0);
- const[created,setCreated]=useState(false);
- const categories={
-  layered:[["TShirt","Camiseta 3D"],["Shirt","Camisa"],["Sweater","Jersey"],["Pants","Pantalón 3D"],["DressSkirt","Vestido / Falda"],["Shorts","Shorts"],["Shoes","Zapatos"]],
-  rigid:[["Hair","Cabello"],["Hat","Sombrero"],["Face","Cara"],["Neck","Cuello"],["Shoulder","Hombro"],["Front","Frontal"],["Back","Espalda"],["Waist","Cintura"]],
-  classic:[["ClassicTShirt","Camiseta clásica"],["ClassicShirt","Camisa clásica"],["ClassicPants","Pantalón clásico"]],
-  animation:[["Idle","Idle"],["Walk","Caminar"],["Run","Correr"],["Jump","Saltar"],["Fall","Caer"],["Emote","Emote"]]
+ const[,t]=useLang();const{developer}=useUser();
+ const base=developer||{name:"Eskådin Player",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
+ const[tab,setTab]=useState("item");const[items,setItems]=useState(()=>createdAvatarItems());const[selected,setSelected]=useState(()=>read("eskadin-object-draft",{name:"Mi objeto",shape:"box",attachment:"HatAttachment",color:"#e95d6a",x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1,enabled:true}));
+ const[avatar,setAvatar]=useState(base);const[frame,setFrame]=useState(0);const[saved,setSaved]=useState(false);
+ const setItem=(k,v)=>setSelected(x=>({...x,[k]:v}));
+ const setAvatarField=(k,v)=>setAvatar(x=>({...x,[k]:v}));
+ const previewUser={...base,...avatar,objectItems:tab==="item"&&selected?[selected]:[]};
+ const saveItem=()=>{
+  const item={...selected,id:selected.id||"asset-"+Date.now(),name:selected.name?.trim()||"Mi objeto",creator:developer?.name||"Eskådin Creator",assetType:"rigid",subtype:"Custom",status:"published",createdAt:new Date().toISOString()};
+  const next=[item,...items.filter(x=>x.id!==item.id)];setItems(next);saveCreatedAvatarItems(next);save("eskadin-object-draft",item);setSelected(item);setSaved(true);setTimeout(()=>setSaved(false),1500);
  };
- const convert=()=>{
-  const now=Date.now();
-  const item={id:"asset-"+now,name:name.trim()||"Creación de Eskådin",description:description.trim(),creator:developer?.name||"Eskådin Creator",assetType,subtype:category,animation:assetType==="animation"?{clip:animClip,frames:Math.max(1,Number(frame)||1)}:null,price:Math.max(0,Math.floor(Number(price)||0)),status:"published",createdAt:new Date(now).toISOString()};
-  const next=[item,...createdAvatarItems()];saveCreatedAvatarItems(next);
-  const owned=avatarCustomOwned();if(!owned.includes(item.id))saveAvatarCustomOwned([...owned,item.id]);
-  setCreated(true);setTimeout(()=>setCreated(false),1800);
- };
- const isAnim=assetType==="animation";
- const previewClass="object-studio-creator-preview";
+ const saveAvatar=()=>{const next={...base,...avatar,objectItems:items.filter(x=>x.owner===developer?.name)};save("eskadin-avatar",next);if(developer){save("eskadin-user",next)};setSaved(true);setTimeout(()=>setSaved(false),1500)};
+ const removeItem=id=>{const next=items.filter(x=>x.id!==id);setItems(next);saveCreatedAvatarItems(next);if(selected.id===id)setSelected(next[0]||{name:"Mi objeto",shape:"box",attachment:"HatAttachment",color:"#e95d6a",x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1,enabled:true})};
+ const tabs=[["item","Objeto"],["avatar","Avatar R15"],["animation","Animación"],["inventory","Mis objetos"]];
  return <main className="object-studio-page">
-  <header className="object-studio-header">
-   <div><span className="roblox-kicker">OBJECT STUDIO</span><h1>Crea ropa, accesorios y animaciones</h1><p>Un creador de artículos de avatar, no un editor de mapas.</p></div>
-   <div className="object-studio-header-actions"><Link className="roblox-pill" to="/avatar">Avatar</Link><Link className="roblox-pill" to="/marketplace">Mercado</Link></div>
-  </header>
+  <header className="object-studio-header"><div><span className="roblox-kicker">ESKÅDIN OBJECT STUDIO</span><h1>Editor de objetos R15</h1><p>crea, coloca, ajusta y guarda objetos directamente sobre un avatar R15.</p></div><div className="object-studio-header-actions"><Link className="roblox-pill" to="/avatar">Avatar</Link><Link className="roblox-pill" to="/marketplace">Mercado</Link></div></header>
+  <div className="object-studio-tabs">{tabs.map(([id,label])=><button key={id} className={tab===id?"chosen":""} onClick={()=>setTab(id)}>{label}</button>)}</div>
   <div className="object-studio-layout object-studio-creator-layout">
    <aside className="object-studio-panel">
-    <div className="object-studio-panel-title">1 · Tipo de creación</div>
-    <div className="object-studio-type-grid">
-     <button className={assetType==="layered"?"chosen":""} onClick={()=>{setAssetType("layered");setCategory("TShirt")}}>👕 Ropa en capas</button>
-     <button className={assetType==="classic"?"chosen":""} onClick={()=>{setAssetType("classic");setCategory("ClassicTShirt")}}>🖼️ Ropa clásica</button>
-     <button className={assetType==="rigid"?"chosen":""} onClick={()=>{setAssetType("rigid");setCategory("Hat")}}>🎩 Accesorio</button>
-     <button className={assetType==="animation"?"chosen":""} onClick={()=>{setAssetType("animation");setCategory("Idle")}}>🕺 Animación</button>
-    </div>
-    <div className="object-studio-panel-title">2 · Categoría</div>
-    <select value={category} onChange={e=>setCategory(e.target.value)}>
-     {categories[assetType].map(([v,l])=><option key={v} value={v}>{l}</option>)}
-    </select>
-    {!isAnim&&<div className="object-studio-creator-tools">
-     <button>＋ Añadir forma</button><button>◈ Añadir malla</button><button>▧ Textura</button><button>✥ Ajustar al avatar</button>
-     <p className="object-studio-tool-note">El maniquí R15 queda siempre visible para crear y ajustar el artículo directamente sobre el avatar.</p>
-    </div>}
-    {isAnim&&<div className="object-studio-creator-tools">
-     <button onClick={()=>setFrame(f=>Math.max(0,f-1))}>◀ Frame</button><button onClick={()=>setFrame(f=>f+1)}>Frame ▶</button><button onClick={()=>setFrame(0)}>↺ Inicio</button>
-    </div>}
+    {tab==="item"&&<><div className="object-studio-panel-title">Objeto</div><label>Nombre<input value={selected.name||""} onChange={e=>setItem("name",e.target.value)}/></label><label>Forma<select value={selected.shape||"box"} onChange={e=>setItem("shape",e.target.value)}><option value="box">Bloque</option><option value="sphere">Esfera</option><option value="cylinder">Cilindro</option></select></label><label>Punto de unión<select value={selected.attachment||"HatAttachment"} onChange={e=>setItem("attachment",e.target.value)}><option value="HatAttachment">Sombrero</option><option value="HairAttachment">Cabello</option><option value="FaceFrontAttachment">Cara</option><option value="NeckAttachment">Cuello</option><option value="RightShoulderAttachment">Hombro derecho</option><option value="LeftShoulderAttachment">Hombro izquierdo</option><option value="BodyFrontAttachment">Frontal</option><option value="BodyBackAttachment">Espalda</option><option value="WaistCenterAttachment">Cintura</option></select></label><label>Color<input type="color" value={selected.color||"#e95d6a"} onChange={e=>setItem("color",e.target.value)}/></label></>}
+    {tab==="avatar"&&<><div className="object-studio-panel-title">Cuerpo R15</div><label>Piel<input type="color" value={avatar.skin||"#f2c7a5"} onChange={e=>setAvatarField("skin",e.target.value)}/></label><label>Camiseta<input type="color" value={avatar.shirt||"#5b7cff"} onChange={e=>setAvatarField("shirt",e.target.value)}/></label><label>Pantalón<input type="color" value={avatar.pants||"#202638"} onChange={e=>setAvatarField("pants",e.target.value)}/></label><label>Cabello<select value={avatar.hair||"classic"} onChange={e=>setAvatarField("hair",e.target.value)}><option value="classic">Clásico</option><option value="short">Corto</option><option value="long">Largo</option><option value="none">Sin pelo</option></select></label><label>Cara<select value={avatar.face||"smile"} onChange={e=>setAvatarField("face",e.target.value)}><option value="smile">Sonrisa</option><option value="cool">Cool</option></select></label><label>Sombrero<select value={avatar.hat||"none"} onChange={e=>setAvatarField("hat",e.target.value)}><option value="none">Ninguno</option><option value="cap">Gorra</option><option value="crown">Corona</option></select></label></>}
+    {tab==="animation"&&<><div className="object-studio-panel-title">Pose R15</div><label>Brazos <input type="range" min="-60" max="60" value={frame} onChange={e=>setFrame(Number(e.target.value))}/></label><p className="object-studio-tool-note">usa el control para previsualizar una pose y guarda el objeto con la posición elegida.</p></>}
+    {tab==="inventory"&&<><div className="object-studio-panel-title">Mis objetos</div><p className="muted">{items.length} objetos guardados en este dispositivo.</p>{items.slice(0,8).map(i=><button key={i.id} className={"object-studio-inventory-item "+(selected.id===i.id?"chosen":"")} onClick={()=>{setSelected(i);setTab("item")}}>{i.name||"Objeto"}<span>{i.shape||"box"}</span></button>)}</>}
    </aside>
-   <section className="object-studio-preview">
-    <div className="object-studio-preview-bar"><b>{isAnim?"EDITOR DE ANIMACIÓN":"EDITOR DE AVATAR"}</b><span>{isAnim?animClip:"Vista previa sobre R15"}</span></div>
-    <div className={previewClass}>
-     <R15AvatarPreview user={developer||{name:"Eskådin Player"}} size="xl"/>
-     <div className="creator-preview-grid"/>
-    </div>
-    {isAnim&&<div className="object-studio-timeline"><span>0</span><input type="range" min="0" max="120" value={frame} onChange={e=>setFrame(e.target.value)}/><span>{frame}</span><button onClick={()=>setFrame(0)}>▶︎ Preview</button></div>}
-   </section>
+   <section className="object-studio-preview"><div className="object-studio-preview-bar"><b>{tab==="avatar"?"R15 AVATAR":tab==="animation"?"R15 POSE":"LIVE OBJECT PREVIEW"}</b><span>15 partes · attachments · WebGL</span></div><div className="object-studio-creator-preview"><R15AvatarPreview user={previewUser} size="xl" customItem={tab==="item"?selected:null}/><div className="creator-preview-grid"/></div></section>
    <aside className="object-studio-panel object-studio-inspector">
-    <div className="object-studio-panel-title">3 · Publicación</div>
-    <label>Nombre<input value={name} onChange={e=>setName(e.target.value)} placeholder="Nombre del artículo"/></label>
-    <label>Descripción<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Describe tu creación…"/></label>
-    {isAnim?<><label>Animación<select value={animClip} onChange={e=>setAnimClip(e.target.value)}><option value="idle">Idle</option><option value="walk">Caminar</option><option value="run">Correr</option><option value="jump">Saltar</option><option value="fall">Caer</option><option value="emote">Emote</option></select></label><div className="object-studio-checks"><span>✓ Rig R15</span><span>✓ Timeline</span><span>✓ Poses por frame</span></div></>:<div className="object-studio-checks"><span>✓ Previsualización en avatar</span><span>✓ Tipo: {categories[assetType].find(([v])=>v===category)?.[1]}</span>{assetType==="layered"&&<span>✓ Preparado para rigging, cages y attachments</span>}</div>}
-    <label>Precio F¢<input type="number" min="0" step="1" value={price} onChange={e=>setPrice(e.target.value)}/></label>
-    <button className="button button-primary object-studio-generate" onClick={convert}>{created?"✓ Publicado en Mercado":"Publicar creación"}</button>
-    <p className="object-studio-note">Las creaciones se guardan en el Mercado local de Eskådin y quedan asociadas a tu inventario en este dispositivo.</p>
+    {tab==="item"&&<><div className="object-studio-panel-title">Transformación</div><div className="object-studio-number-grid">{[["x","X"],["y","Y"],["z","Z"],["rx","Rot X"],["ry","Rot Y"],["rz","Rot Z"],["sx","Escala X"],["sy","Escala Y"],["sz","Escala Z"]].map(([k,l])=><label key={k}>{l}<input type="number" step="0.05" value={selected[k]??0} onChange={e=>setItem(k,Number(e.target.value))}/></label>)}</div><button className="button button-primary object-studio-generate" onClick={saveItem}>{saved?"✓ Guardado":"Guardar objeto"}</button><button className="button button-ghost object-studio-generate" onClick={()=>setItem("enabled",!selected.enabled)}>{selected.enabled===false?"Mostrar":"Ocultar"} objeto</button></>}
+    {tab==="avatar"&&<><div className="object-studio-panel-title">Proporciones</div><label>Anchura<input type="range" min=".82" max="1.18" step=".01" value={avatar.bodyWidth||1} onChange={e=>setAvatarField("bodyWidth",Number(e.target.value))}/></label><label>Altura<input type="range" min=".9" max="1.12" step=".01" value={avatar.bodyHeight||1} onChange={e=>setAvatarField("bodyHeight",Number(e.target.value))}/></label><label>Cabeza<input type="range" min=".86" max="1.18" step=".01" value={avatar.headScale||1} onChange={e=>setAvatarField("headScale",Number(e.target.value))}/></label><button className="button button-primary object-studio-generate" onClick={saveAvatar}>{saved?"✓ Avatar guardado":"Guardar avatar"}</button></>}
+    {tab==="animation"&&<><div className="object-studio-panel-title">Timeline</div><input type="range" min="-60" max="60" value={frame} onChange={e=>setFrame(Number(e.target.value))}/><div className="object-studio-checks"><span>✓ R15</span><span>✓ 15 articulaciones</span><span>✓ Vista previa</span></div></>}
+    {tab==="inventory"&&selected?.id&&<><div className="object-studio-panel-title">Acciones</div><p className="muted">{selected.name}</p><button className="button button-ghost object-studio-generate" onClick={()=>removeItem(selected.id)}>Eliminar objeto</button></>}
    </aside>
   </div>
  </main>
 }
+
 function AvatarEditor(){
- const[,t]=useLang();const{user,login}=useUser();const current=user||{name:"Eskådin Player",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
- const[form,setForm]=useState(current);const saveProfile=()=>{login(form);save("eskadin-avatar",form)};const set=(k,v)=>setForm(x=>({...x,[k]:v}));
+ const[,t]=useLang();const{user,login}=useUser();
+ const base=user||{name:"Eskådin Player",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
+ const[form,setForm]=useState(base);const[section,setSection]=useState("body");const[saved,setSaved]=useState(false);
+ const set=(k,v)=>setForm(x=>({...x,[k]:v}));
+ const saveProfile=()=>{login(form);save("eskadin-avatar",form);setSaved(true);setTimeout(()=>setSaved(false),1600)};
  return <main className="roblox-page avatar-editor-page">
-  <div className="roblox-titlebar"><div><span className="roblox-kicker">AVATAR</span><h1>Editar avatar</h1><p>tu personaje se guarda en tu perfil y aparece dentro de tus experiencias.</p></div><Link className="roblox-pill" to="/marketplace">Abrir mercado</Link></div>
+  <div className="roblox-titlebar"><div><span className="roblox-kicker">AVATAR R15</span><h1>Editor de avatar</h1><p>un R15 completo, articulado y compatible con los objetos de Eskådin.</p></div><Link className="roblox-pill" to="/object-studio">Object Studio</Link></div>
   <div className="avatar-editor-layout">
-   <section className="roblox-card avatar-dressing-room"><div className="avatar-stage"><R15AvatarPreview user={form} size="xl"/></div><div className="avatar-editor-actions"><button className="button button-primary" onClick={saveProfile}>Guardar perfil y avatar</button><Link className="button button-ghost" to="/account">Ver perfil</Link></div></section>
+   <section className="roblox-card avatar-dressing-room"><div className="avatar-stage"><R15AvatarPreview user={form} size="xl"/></div><div className="avatar-editor-actions"><button className="button button-primary" onClick={saveProfile}>{saved?"✓ Guardado":"Guardar avatar"}</button><Link className="button button-ghost" to="/account">Ver perfil</Link></div></section>
    <section className="roblox-card avatar-editor-controls">
-    <h2>Cuerpo</h2>
-    <div className="avatar-choice-row"><span>Piel</span>{["#f2c7a5","#d89b72","#8d5524","#f7dfc5"].map(v=><button key={v} className={"swatch "+(form.skin===v?"chosen":"")} style={{background:v}} onClick={()=>set("skin",v)}/>)}</div>
-    <div className="avatar-choice-row"><span>Camiseta</span>{["#5b7cff","#e95d6a","#58b89a","#9b6cff","#f2b84b"].map(v=><button key={v} className={"swatch "+(form.shirt===v?"chosen":"")} style={{background:v}} onClick={()=>set("shirt",v)}/>)}</div>
-    <div className="avatar-choice-row"><span>Pantalón</span>{["#202638","#354a73","#4d3430","#29352d"].map(v=><button key={v} className={"swatch "+(form.pants===v?"chosen":"")} style={{background:v}} onClick={()=>set("pants",v)}/>)}</div>
-    <h2>Aspecto</h2>
-    <div className="avatar-chip-grid">{AVATAR_ITEMS.filter(i=>["hair","face","hat"].includes(i.kind)).map(i=><button key={i.id} className={"avatar-chip "+(form[i.kind]===i.value?"chosen":"")} onClick={()=>set(i.kind,i.value)}>{i.glyph} {i.name}</button>)}</div>
+    <div className="object-studio-tabs">{[["body","Cuerpo"],["clothes","Ropa"],["style","Estilo"]].map(([id,label])=><button key={id} className={section===id?"chosen":""} onClick={()=>setSection(id)}>{label}</button>)}</div>
+    {section==="body"&&<><h2>Cuerpo R15</h2><div className="avatar-choice-row"><span>Piel</span>{["#f2c7a5","#d89b72","#8d5524","#f7dfc5"].map(v=><button key={v} className={"swatch "+(form.skin===v?"chosen":"")} style={{background:v}} onClick={()=>set("skin",v)}/>)}</div><label>Anchura<input type="range" min=".82" max="1.18" step=".01" value={form.bodyWidth||1} onChange={e=>set("bodyWidth",Number(e.target.value))}/></label><label>Altura<input type="range" min=".9" max="1.12" step=".01" value={form.bodyHeight||1} onChange={e=>set("bodyHeight",Number(e.target.value))}/></label><label>Cabeza<input type="range" min=".86" max="1.18" step=".01" value={form.headScale||1} onChange={e=>set("headScale",Number(e.target.value))}/></label></>}
+    {section==="clothes"&&<><h2>Ropa</h2><div className="avatar-choice-row"><span>Camiseta</span>{["#5b7cff","#e95d6a","#58b89a","#9b6cff","#f2b84b","#151a25"].map(v=><button key={v} className={"swatch "+(form.shirt===v?"chosen":"")} style={{background:v}} onClick={()=>set("shirt",v)}/>)}</div><div className="avatar-choice-row"><span>Pantalón</span>{["#202638","#354a73","#4d3430","#29352d","#6b4f35"].map(v=><button key={v} className={"swatch "+(form.pants===v?"chosen":"")} style={{background:v}} onClick={()=>set("pants",v)}/>)}</div></>}
+    {section==="style"&&<><h2>Estilo</h2><label>Cabello<select value={form.hair||"classic"} onChange={e=>set("hair",e.target.value)}><option value="classic">Clásico</option><option value="short">Corto</option><option value="long">Largo</option><option value="none">Sin pelo</option></select></label><label>Cara<select value={form.face||"smile"} onChange={e=>set("face",e.target.value)}><option value="smile">Sonrisa</option><option value="cool">Cool</option></select></label><label>Sombrero<select value={form.hat||"none"} onChange={e=>set("hat",e.target.value)}><option value="none">Ninguno</option><option value="cap">Gorra</option><option value="crown">Corona</option></select></label></>}
    </section>
   </div>
  </main>
 }
+
 function Marketplace(){
  const[,t]=useLang();const{user,login}=useUser();const[query,setQuery]=useState("");const[category,setCategory]=useState("Todos");
  const[owned,setOwned]=useState(()=>[...avatarOwned(),...avatarCustomOwned()]);
