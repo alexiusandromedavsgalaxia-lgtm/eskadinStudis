@@ -1210,3 +1210,19 @@ body:has(.editor-page) .editor-page{
  .account-header-main{padding:0}
  .profile-actions{flex-wrap:wrap}
 }
+
+.studio-project-manager{padding:10px 10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.studio-project-manager select{width:100%;box-sizing:border-box;background:#10151e;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px}
+.studio-project-manager-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}
+.studio-project-manager-actions button{background:#171d27;color:#cbd3df;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:7px 5px;font-size:11px;font-weight:700;cursor:pointer}
+.studio-project-manager-actions button:hover{background:#202938;color:#fff}
+.studio-project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.studio-project-card{overflow:hidden;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#11151d;box-shadow:0 12px 35px rgba(0,0,0,.18)}
+.studio-project-thumb{height:145px;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(91,124,255,.22),transparent 40%),linear-gradient(135deg,#171d28,#0b0f16);font-size:42px;font-weight:900;letter-spacing:-.08em}
+.studio-project-thumb span{opacity:.72}
+.studio-project-card-body{padding:16px}
+.studio-project-card-body h2{margin:0 0 5px;font-size:20px}
+.studio-project-card-body p{margin:0 0 9px;color:#8e99aa;min-height:38px}
+.studio-project-card-body small{display:block;color:#687486;margin-bottom:14px}
+.studio-project-card .actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:700px){.studio-project-grid{grid-template-columns:1fr}}
