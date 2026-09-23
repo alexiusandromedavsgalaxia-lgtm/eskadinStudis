@@ -1226,3 +1226,17 @@ body:has(.editor-page) .editor-page{
 .studio-project-card-body small{display:block;color:#687486;margin-bottom:14px}
 .studio-project-card .actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.studio-project-grid{grid-template-columns:1fr}}
+
+/* R15/Object Studio rebuild */
+.object-studio-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.object-studio-tabs button{border:1px solid rgba(255,255,255,.12);background:#111722;color:#cbd5e1;border-radius:10px;padding:9px 13px;cursor:pointer}
+.object-studio-tabs button.chosen{background:#eef2ff;color:#111827;border-color:#eef2ff}
+.object-studio-number-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.object-studio-number-grid label{min-width:0}
+.object-studio-number-grid input{width:100%;box-sizing:border-box}
+.object-studio-inventory-item{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;border:1px solid rgba(255,255,255,.09);background:#101620;color:#e5e7eb;border-radius:9px;padding:9px 10px;margin:5px 0;cursor:pointer}
+.object-studio-inventory-item.chosen{border-color:#8b9cff;background:#171d2c}
+.object-studio-inventory-item span{opacity:.55;font-size:11px}
+.object-studio-panel label{display:block;margin:10px 0}
+.object-studio-panel label input,.object-studio-panel label select,.object-studio-panel label textarea{width:100%;box-sizing:border-box;margin-top:5px}
+.object-studio-panel input[type="color"]{height:38px;padding:2px}
