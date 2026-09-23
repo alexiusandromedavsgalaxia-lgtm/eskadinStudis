@@ -60,7 +60,7 @@ function R15AvatarPreview({user,size="md",customItem}){
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b0f16);
   const camera=new THREE.PerspectiveCamera(28,1,.1,100);camera.position.set(4.4,2.8,7.4);camera.lookAt(0,1.45,0);
   const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
-  host.replaceChildren(renderer.domElement);renderer.domElement.style.width="100%";renderer.domElement.style.height="100%";
+  host.replaceChildren(renderer.domElement);renderer.domElement.style.width="100%";renderer.domElement.style.height="100%";renderer.domElement.style.touchAction="none";\n  const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.09;orbit.enablePan=false;orbit.enableZoom=true;orbit.zoomSpeed=.65;orbit.minDistance=4.2;orbit.maxDistance=11;orbit.target.set(0,1.45,0);orbit.update();
   scene.add(new THREE.HemisphereLight(0xffffff,0x273044,2.15));
   const key=new THREE.DirectionalLight(0xffffff,2.8);key.position.set(3,7,5);key.castShadow=true;scene.add(key);
   const fill=new THREE.DirectionalLight(0x7aa7ff,1.0);fill.position.set(-4,3,-2);scene.add(fill);
@@ -69,8 +69,8 @@ function R15AvatarPreview({user,size="md",customItem}){
   let raf=0;const clock=new THREE.Clock();
   const resize=()=>{const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)};
   resize();const ro=new ResizeObserver(resize);ro.observe(host);
-  const tick=()=>{raf=requestAnimationFrame(tick);const time=clock.getElapsedTime();avatar.userData.animate?.(time,false,true);avatar.rotation.y=Math.sin(time*.35)*.10;renderer.render(scene,camera)};tick();
-  return()=>{cancelAnimationFrame(raf);ro.disconnect();scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(x=>x.dispose())}});renderer.dispose();host.replaceChildren()};
+  const tick=()=>{raf=requestAnimationFrame(tick);const time=clock.getElapsedTime();avatar.userData.animate?.(time,false,true);orbit.update();renderer.render(scene,camera)};tick();
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();orbit.dispose();scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(x=>x.dispose())}});renderer.dispose();host.replaceChildren()};
  },[user,customItem]);
  return <div className={"avatar-r15-preview avatar-"+size} ref={ref} aria-label={user?.name||"R15 avatar"}/>;
 }
@@ -190,7 +190,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   const host=hostRef.current;if(!host)return;
   const runtime=runtimeRef.current;
   const scene3=new THREE.Scene();scene3.background=new THREE.Color(0x101722);scene3.fog=new THREE.Fog(0x101722,18,70);
-  const camera=new THREE.PerspectiveCamera(70,1,.05,120);
+  const camera=new THREE.PerspectiveCamera(70,1,.1,120);
   const renderer=new THREE.WebGLRenderer({antialias:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.domElement.style.cssText="width:100%;height:100%;display:block;touch-action:none";host.replaceChildren(renderer.domElement);
@@ -276,14 +276,14 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    const substeps=5,stepDt=dt/substeps;for(let i=0;i<substeps;i++)updatePlayer(stepDt);
    if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
-   camera.position.set(playerCollider.end.x,playerCollider.end.y,playerCollider.end.z);camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
+   const cameraTargetY=playerCollider.start.y+1.05;\n   const cameraDistance=3.6,cameraHeight=1.85;\n   const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance;\n   const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance;\n   camera.position.set(camX,cameraTargetY+cameraHeight-1.05,camZ);\n   camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
   return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[]);
  const[menuOpen,setMenuOpen]=useState(false);const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
- return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>{setChatOpen(v=>!v);setMenuOpen(false)}}>💬</button>
+ return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button>
  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
