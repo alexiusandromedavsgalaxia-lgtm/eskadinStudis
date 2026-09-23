@@ -105,39 +105,43 @@ function createEskadinR15Avatar(user={}){
  const mat=(color,rough=.72,metal=0)=>new THREE.MeshStandardMaterial({color:hex(color),roughness:rough,metalness:metal});
  const skin=mat(user.skin||"#f2c7a5",.78),shirt=mat(user.shirt||"#5b7cff",.7),pants=mat(user.pants||"#202638",.82),shoe=mat(user.shoe||"#151a25",.8),hair=mat(user.hairColor||"#241b18",.62),accent=mat(user.accentColor||"#e95d6a",.55,.08);
  const sx=Math.max(.82,Math.min(1.18,Number(user.bodyWidth)||1)),sy=Math.max(.9,Math.min(1.12,Number(user.bodyHeight)||1)),hs=Math.max(.86,Math.min(1.18,Number(user.headScale)||1));
- const bodyStyle=user.bodyStyle||"blocky2"; 
- const classic=bodyStyle==="classic";
- const shoulder=.62*sx, hip=.42*sx, limb=.30*sx;
- const torsoW=classic?.86:1.02, torsoD=classic?.44:.50;
  const bone=(name,x,y,z,parent=root)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g};
  const box=(parent,name,w,h,d,material,r=.08)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
  const sphere=(parent,name,r,material)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
- const lower=bone("LowerTorso",0,1.58*sy,0),upper=bone("UpperTorso",0,.53*sy,0,lower),neck=bone("Neck",0,.43*sy,0,upper),head=bone("Head",0,.32*sy,0,neck);
- const lUL=bone("LeftUpperLeg",-hip,-.38*sy,0,lower),lLL=bone("LeftLowerLeg",0,-.60*sy,0,lUL),lF=bone("LeftFoot",0,-.55*sy,-.17,lLL);
- const rUL=bone("RightUpperLeg",hip,-.38*sy,0,lower),rLL=bone("RightLowerLeg",0,-.60*sy,0,rUL),rF=bone("RightFoot",0,-.55*sy,-.17,rLL);
- const lUA=bone("LeftUpperArm",-shoulder,.32*sy,0,upper),lLA=bone("LeftLowerArm",0,-.53*sy,0,lUA),lH=bone("LeftHand",0,-.48*sy,0,lLA);
- const rUA=bone("RightUpperArm",shoulder,.32*sy,0,upper),rLA=bone("RightLowerArm",0,-.53*sy,0,rUA),rH=bone("RightHand",0,-.48*sy,0,rLA);
-
- // Robloxian 2.0-inspired proportions, with a narrower waist.
- const rounded=(parent,name,w,h,d,material)=>{
-   const g=new THREE.Group();g.name=name;const r=Math.min(w,d)*.40;
-   const geo=new THREE.CapsuleGeometry(r,Math.max(.02,h-r*2),12,6);
-   const m=new THREE.Mesh(geo,material.clone());m.scale.z=Math.max(.1,d/(r*2));m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g;
+ const tapered=(parent,name,topW,bottomW,topD,bottomD,h,material,segments=10)=>{
+   const g=new THREE.Group();g.name=name;
+   const geo=new THREE.CylinderGeometry(topW/2,bottomW/2,h,segments,1,false);
+   geo.scale(1,1,Math.max(.1,topD/Math.max(.001,topW)));
+   const m=new THREE.Mesh(geo,material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g;
  };
- const torsoMesh=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),shirt.clone());
- torsoMesh.name="UpperTorsoMesh";torsoMesh.scale.set(.58*sx,.40*sy,.30);torsoMesh.position.y=.02*sy;torsoMesh.castShadow=true;torsoMesh.receiveShadow=true;upper.add(torsoMesh);
- const waistMesh=new THREE.Mesh(new THREE.CapsuleGeometry(.30*sx,.24*sy,12,6),shirt.clone());
- waistMesh.name="LowerTorsoMesh";waistMesh.scale.z=.78;waistMesh.position.y=.01*sy;waistMesh.castShadow=true;waistMesh.receiveShadow=true;lower.add(waistMesh);
- const headMesh=new THREE.Mesh(new THREE.CapsuleGeometry(.39*hs,.30*hs,12,8),skin.clone());
- headMesh.name="HeadMesh";headMesh.scale.z=.94;headMesh.castShadow=true;headMesh.receiveShadow=true;head.add(headMesh);
- rounded(lUL,"LeftUpperLegMesh",.43*sx,.72*sy,.43,pants);rounded(lLL,"LeftLowerLegMesh",.39*sx,.62*sy,.39,pants);rounded(lF,"LeftFootMesh",.46*sx,.24*sy,.68,shoe);
- rounded(rUL,"RightUpperLegMesh",.43*sx,.72*sy,.43,pants);rounded(rLL,"RightLowerLegMesh",.39*sx,.62*sy,.39,pants);rounded(rF,"RightFootMesh",.46*sx,.24*sy,.68,shoe);
- rounded(lUA,"LeftUpperArmMesh",.40*sx,.60*sy,.40,shirt);rounded(lLA,"LeftLowerArmMesh",.35*sx,.53*sy,.35,skin);sphere(lH,"LeftHandMesh",.19*sx,skin);
- rounded(rUA,"RightUpperArmMesh",.40*sx,.60*sy,.40,shirt);rounded(rLA,"RightLowerArmMesh",.35*sx,.53*sy,.35,skin);sphere(rH,"RightHandMesh",.19*sx,skin);
-const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.4});
- [-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.035*hs,12,8),eyeMat);e.position.set(x*hs,.02,.365*hs);face.add(e)});
- const mouth=new THREE.Mesh(new THREE.BoxGeometry(.16*hs,.025,.018),eyeMat);mouth.position.set(0,-.11*hs,.36*hs);face.add(mouth);
- if(user.face==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.48*hs,.06,.035),new THREE.MeshStandardMaterial({color:0x151922,metalness:.25,roughness:.3}));glasses.position.set(0,.03,.38*hs);face.add(glasses)}
+ const lower=bone("LowerTorso",0,1.58*sy,0),upper=bone("UpperTorso",0,.53*sy,0,lower),neck=bone("Neck",0,.43*sy,0,upper),head=bone("Head",0,.32*sy,0,neck);
+ const lUL=bone("LeftUpperLeg",-.31*sx,-.38*sy,0,lower),lLL=bone("LeftLowerLeg",0,-.60*sy,0,lUL),lF=bone("LeftFoot",0,-.55*sy,-.17,lLL);
+ const rUL=bone("RightUpperLeg",.31*sx,-.38*sy,0,lower),rLL=bone("RightLowerLeg",0,-.60*sy,0,rUL),rF=bone("RightFoot",0,-.55*sy,-.17,rLL);
+ const lUA=bone("LeftUpperArm",-.57*sx,.32*sy,0,upper),lLA=bone("LeftLowerArm",0,-.53*sy,0,lUA),lH=bone("LeftHand",0,-.48*sy,0,lLA);
+ const rUA=bone("RightUpperArm",.57*sx,.32*sy,0,upper),rLA=bone("RightLowerArm",0,-.53*sy,0,rUA),rH=bone("RightHand",0,-.48*sy,0,rLA);
+
+ // Original geometry rebuilt to closely follow the classic Robloxian 2.0 silhouette:
+ // broad shoulders, slim tapered torso, narrow waist, slim separated limbs, simple rounded head.
+ const torso=tapered(upper,"UpperTorsoMesh",1.04*sx,.72*sx,.48,.40,.82*sy,shirt,16);torso.position.y=.02*sy;
+ const waist=tapered(lower,"LowerTorsoMesh",.72*sx,.84*sx,.40,.44,.48*sy,shirt,16);waist.position.y=.02*sy;
+ const headMesh=new THREE.Mesh(new THREE.CapsuleGeometry(.38*hs,.34*hs,12,8),skin.clone());
+ headMesh.name="HeadMesh";headMesh.scale.z=.92;headMesh.castShadow=true;headMesh.receiveShadow=true;head.add(headMesh);
+ tapered(lUL,"LeftUpperLegMesh",.38*sx,.34*sx,.38,.34,.70*sy,pants,12).position.y=.02*sy;
+ tapered(lLL,"LeftLowerLegMesh",.34*sx,.30*sx,.34,.30,.64*sy,pants,12).position.y=.02*sy;
+ tapered(rUL,"RightUpperLegMesh",.38*sx,.34*sx,.38,.34,.70*sy,pants,12).position.y=.02*sy;
+ tapered(rLL,"RightLowerLegMesh",.34*sx,.30*sx,.34,.30,.64*sy,pants,12).position.y=.02*sy;
+ tapered(lF,"LeftFootMesh",.42*sx,.38*sx,.64,.58,.24*sy,shoe,12).position.z=-.15;
+ tapered(rF,"RightFootMesh",.42*sx,.38*sx,.64,.58,.24*sy,shoe,12).position.z=-.15;
+ tapered(lUA,"LeftUpperArmMesh",.40*sx,.34*sx,.40,.34,.60*sy,shirt,12).position.y=.01*sy;
+ tapered(lLA,"LeftLowerArmMesh",.34*sx,.29*sx,.34,.29,.54*sy,skin,12).position.y=.01*sy;
+ tapered(rUA,"RightUpperArmMesh",.40*sx,.34*sx,.40,.34,.60*sy,shirt,12).position.y=.01*sy;
+ tapered(rLA,"RightLowerArmMesh",.34*sx,.29*sx,.34,.29,.54*sy,skin,12).position.y=.01*sy;
+ sphere(lH,"LeftHandMesh",.18*sx,skin);sphere(rH,"RightHandMesh",.18*sx,skin);
+
+ const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.4});
+ [-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.035*hs,12,8),eyeMat);e.position.set(x*hs,.02,.35*hs);face.add(e)});
+ const mouth=new THREE.Mesh(new THREE.TorusGeometry(.095*hs,.012*hs,8,20,Math.PI),eyeMat);mouth.rotation.x=Math.PI;mouth.position.set(0,-.10*hs,.345*hs);face.add(mouth);
+ if(user.face==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.48*hs,.06,.035),new THREE.MeshStandardMaterial({color:0x151922,metalness:.25,roughness:.3}));glasses.position.set(0,.03,.37*hs);face.add(glasses)}
  head.add(face);
 
  const hairType=user.hair||"classic";
@@ -149,7 +153,7 @@ const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandar
  const attachments={};
  const attach=(name,parent,pos)=>{const a=new THREE.Object3D();a.name=name;a.position.set(...pos);parent.add(a);attachments[name]=a};
  attach("HairAttachment",head,[0,.39*hs,0]);attach("HatAttachment",head,[0,.44*hs,0]);attach("FaceFrontAttachment",head,[0,0,.38*hs]);attach("NeckAttachment",neck,[0,.04,0]);
- attach("RightShoulderAttachment",rUA,[0,.29*sy,0]);attach("LeftShoulderAttachment",lUA,[0,.29*sy,0]);attach("BodyFrontAttachment",upper,[0,.10*sy,.27]);attach("BodyBackAttachment",upper,[0,.10*sy,-.27]);attach("WaistCenterAttachment",lower,[0,-.22*sy,0]);
+ attach("RightShoulderAttachment",rUA,[0,.29*sy,0]);attach("LeftShoulderAttachment",lUA,[0,.29*sy,0]);attach("BodyFrontAttachment",upper,[0,.10*sy,.25]);attach("BodyBackAttachment",upper,[0,.10*sy,-.25]);attach("WaistCenterAttachment",lower,[0,-.22*sy,0]);
 
  const addCustomItem=item=>{
   if(!item||item.enabled===false)return;
@@ -172,7 +176,6 @@ const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandar
  root.userData.animate=(time,moving,grounded)=>{const walk=moving?Math.sin(time*8.5)*.62:0,idle=Math.sin(time*2.1)*.018;lUL.rotation.x=walk;rUL.rotation.x=-walk;lLL.rotation.x=Math.max(0,-walk)*.42;rLL.rotation.x=Math.max(0,walk)*.42;lF.rotation.x=-walk*.15;rF.rotation.x=walk*.15;lUA.rotation.x=-walk*.55;rUA.rotation.x=walk*.55;lLA.rotation.x=Math.abs(walk)*.12;rLA.rotation.x=Math.abs(walk)*.12;upper.rotation.z=idle*.5;neck.rotation.z=idle*.25;if(!grounded){lUL.rotation.x=-.22;rUL.rotation.x=.22;lUA.rotation.x=.34;rUA.rotation.x=-.34}};
  return root;
 }
-
 function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const{user}=useUser();
  const[chatOpen,setChatOpen]=useState(false);
