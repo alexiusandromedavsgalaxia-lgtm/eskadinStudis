@@ -106,7 +106,7 @@ function createEskadinR15Avatar(user={}){
  const root=new THREE.Group();root.name="EskadinR15";
  const hex=v=>{if(typeof v==="number")return v;const n=parseInt(String(v||"").replace("#",""),16);return Number.isFinite(n)?n:0xf2c7a5};
  const mat=(color,rough=.72,metal=0)=>new THREE.MeshStandardMaterial({color:hex(color),roughness:rough,metalness:metal});
- const skin=mat(user.skin||"#f2c7a5",.78),shirt=mat(user.shirt||"#5b7cff",.7),pants=mat(user.pants||"#202638",.82),shoe=mat(user.shoe||"#151a25",.8),hair=mat(user.hairColor||"#241b18",.62),accent=mat(user.accentColor||"#e95d6a",.55,.08);
+ const skin=mat(user.skin||"#f2c7a5",.62),shirt=mat(user.shirt||"#4f78ff",.58),pants=mat(user.pants||"#202638",.72),shoe=mat(user.shoe||"#151a25",.68),hair=mat(user.hairColor||"#241b18",.5),accent=mat(user.accentColor||"#e95d6a",.48,.08);
  const sx=Math.max(.82,Math.min(1.18,Number(user.bodyWidth)||1)),sy=Math.max(.9,Math.min(1.12,Number(user.bodyHeight)||1)),hs=Math.max(.86,Math.min(1.18,Number(user.headScale)||1));
  const bone=(name,x,y,z,parent=root)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g};
  const box=(parent,name,w,h,d,material,r=.08)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);parent.add(g);return g};
@@ -141,7 +141,7 @@ function createEskadinR15Avatar(user={}){
  tapered(rLA,"RightLowerArmMesh",.34*sx,.29*sx,.34,.29,.54*sy,skin,12).position.y=.01*sy;
  sphere(lH,"LeftHandMesh",.18*sx,skin);sphere(rH,"RightHandMesh",.18*sx,skin);
 
- const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.4});
+ const face=new THREE.Group();face.name="Face";const eyeMat=new THREE.MeshStandardMaterial({color:0x11151d,roughness:.3});
  [-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.035*hs,12,8),eyeMat);e.position.set(x*hs,.02,.35*hs);face.add(e)});
  const mouth=new THREE.Mesh(new THREE.TorusGeometry(.095*hs,.012*hs,8,20,Math.PI),eyeMat);mouth.rotation.x=Math.PI;mouth.position.set(0,-.10*hs,.345*hs);face.add(mouth);
  if(user.face==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.48*hs,.06,.035),new THREE.MeshStandardMaterial({color:0x151922,metalness:.25,roughness:.3}));glasses.position.set(0,.03,.37*hs);face.add(glasses)}
@@ -176,7 +176,7 @@ function createEskadinR15Avatar(user={}){
 
  root.userData.avatarParts=15;root.userData.r15=true;root.userData.height=3.18*sy;root.userData.attachments=attachments;
  root.userData.r15Joints=[["LowerTorso","UpperTorso"],["UpperTorso","Neck"],["Neck","Head"],["LowerTorso","LeftUpperLeg"],["LeftUpperLeg","LeftLowerLeg"],["LeftLowerLeg","LeftFoot"],["LowerTorso","RightUpperLeg"],["RightUpperLeg","RightLowerLeg"],["RightLowerLeg","RightFoot"],["UpperTorso","LeftUpperArm"],["LeftUpperArm","LeftLowerArm"],["LeftLowerArm","LeftHand"],["UpperTorso","RightUpperArm"],["RightUpperArm","RightLowerArm"],["RightLowerArm","RightHand"]];
- root.userData.animate=(time,moving,grounded)=>{const walk=moving?Math.sin(time*8.5)*.62:0,idle=Math.sin(time*2.1)*.018;lUL.rotation.x=walk;rUL.rotation.x=-walk;lLL.rotation.x=Math.max(0,-walk)*.42;rLL.rotation.x=Math.max(0,walk)*.42;lF.rotation.x=-walk*.15;rF.rotation.x=walk*.15;lUA.rotation.x=-walk*.55;rUA.rotation.x=walk*.55;lLA.rotation.x=Math.abs(walk)*.12;rLA.rotation.x=Math.abs(walk)*.12;upper.rotation.z=idle*.5;neck.rotation.z=idle*.25;if(!grounded){lUL.rotation.x=-.22;rUL.rotation.x=.22;lUA.rotation.x=.34;rUA.rotation.x=-.34}};
+ root.userData.animate=(time,moving,grounded)=>{const walk=moving?Math.sin(time*7.2)*.48:0,idle=Math.sin(time*1.8)*.012;lUL.rotation.x=walk;rUL.rotation.x=-walk;lLL.rotation.x=Math.max(0,-walk)*.42;rLL.rotation.x=Math.max(0,walk)*.42;lF.rotation.x=-walk*.15;rF.rotation.x=walk*.15;lUA.rotation.x=-walk*.55;rUA.rotation.x=walk*.55;lLA.rotation.x=Math.abs(walk)*.12;rLA.rotation.x=Math.abs(walk)*.12;upper.rotation.z=idle*.5;neck.rotation.z=idle*.25;if(!grounded){lUL.rotation.x=-.22;rUL.rotation.x=.22;lUA.rotation.x=.34;rUA.rotation.x=-.34}};
  return root;
 }
 function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
@@ -187,6 +187,8 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const hostRef=useRef(null),runtimeRef=useRef(null),stickRef=useRef(null),knobRef=useRef(null);
  const keysRef=useRef({}),touchRef=useRef({x:0,z:0,active:false,id:null}),lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
  const jumpRef=useRef(false),pausedRef=useRef(false);
+ const[cameraMode,setCameraMode]=useState("third");
+ const cameraModeRef=useRef("third");
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
   const runtime=runtimeRef.current;
@@ -245,6 +247,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   };
 
   let yaw=Math.PI,pitch=-.12,last=performance.now(),raf=0;
+  let currentCameraDistance=3.8;
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
   const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)}};
@@ -277,19 +280,40 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    const substeps=5,stepDt=dt/substeps;for(let i=0;i<substeps;i++)updatePlayer(stepDt);
    if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
-   const cameraTargetY=playerCollider.start.y+1.05;
-   const cameraDistance=3.6,cameraHeight=1.85;
-   const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance;
-   const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance;
-   camera.position.set(camX,cameraTargetY+cameraHeight-1.05,camZ);
-   camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
+   const mode=cameraModeRef.current;
+   const cameraTargetY=playerCollider.start.y+1.18;
+   const smooth=(target)=>{currentCameraDistance+=((target-currentCameraDistance)*Math.min(1,dt*14));return currentCameraDistance};
+   if(mode==="first"){
+    player.visible=false;
+    camera.position.set(playerCollider.start.x,playerCollider.start.y+1.52,playerCollider.start.z);
+    camera.rotation.order="YXZ";
+    camera.rotation.set(pitch,yaw+Math.PI,0);
+   }else{
+    player.visible=true;
+    const targetDistance=mode==="shoulder"?1.75:mode==="free"?6.5:3.8;
+    const cameraDistance=smooth(targetDistance);
+    const cameraHeight=mode==="shoulder"?1.35:mode==="free"?2.7:2.05;
+    const side=mode==="shoulder"?0.72:0;
+    const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance+Math.cos(yaw)*side;
+    const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance-Math.sin(yaw)*side;
+    camera.position.set(camX,cameraTargetY+cameraHeight-1.15,camZ);
+    camera.lookAt(playerCollider.start.x+Math.sin(yaw)*.2,cameraTargetY,playerCollider.start.z+Math.cos(yaw)*.2);
+   }
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
   return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[]);
- const[menuOpen,setMenuOpen]=useState(false);const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
- return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
+ const[menuOpen,setMenuOpen]=useState(false);
+ const setMode=mode=>{cameraModeRef.current=mode;setCameraMode(mode)};
+ const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
+ return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/>
+ <div className="runtime-camera-switcher" role="toolbar" aria-label="Modo de cámara">
+  <button className={cameraMode==="first"?"active":""} onClick={()=>setMode("first")}>1ª</button>
+  <button className={cameraMode==="shoulder"?"active":""} onClick={()=>setMode("shoulder")}>2ª</button>
+  <button className={cameraMode==="third"?"active":""} onClick={()=>setMode("third")}>3ª</button>
+  <button className={cameraMode==="free"?"active":""} onClick={()=>setMode("free")}>FREE</button>
+ </div><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
  </div>
