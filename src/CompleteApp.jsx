@@ -536,10 +536,19 @@ function Editor(){useStudioFullscreenLock();
  const[showAxes,setShowAxes]=useState(true);
  const[panel,setPanel]=useState("create");
  const[obj,setObj]=useState(null);
+ const[past,setPast]=useState([]);
+ const[future,setFuture]=useState([]);
+ const[aiPrompt,setAiPrompt]=useState("");
+ const[aiBusy,setAiBusy]=useState(false);
+ const historyLock=useRef(false);
  useEffect(()=>setObj(scene.find(o=>o.id===selected)||null),[scene,selected]);
-
- const upd=(id,patch)=>setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o));
- const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],floor:[0,0,0],fence:[0,.8,0],stairs:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};setScene(s=>[...s,item]);setSelected(id)};
+ const pushHistory=previous=>{setPast(h=>[...h.slice(-49),JSON.parse(JSON.stringify(previous))]);setFuture([])};
+ const applyScene=next=>{pushHistory(scene);setScene(next)};
+ const upd=(id,patch)=>setScene(s=>{const next=s.map(o=>o.id===id?{...o,...patch}:o);if(!historyLock.current)pushHistory(s);return next});
+ const undo=()=>{if(!past.length)return;const previous=past[past.length-1];setFuture(h=>[JSON.parse(JSON.stringify(scene)),...h.slice(0,49)]);setPast(h=>h.slice(0,-1));setScene(previous);setSelected(previous[0]?.id||null)};
+ const redo=()=>{if(!future.length)return;const next=future[0];setPast(h=>[...h.slice(-49),JSON.parse(JSON.stringify(scene))]);setFuture(h=>h.slice(1));setScene(next);setSelected(next[0]?.id||null)};
+ const runAI=()=>{const prompt=aiPrompt.trim();if(!prompt)return;setAiBusy(true);setTimeout(()=>{const generated=generateSceneFromPrompt(prompt);const next=[...scene,...generated.map((o,i)=>({...o,id:Date.now()+i}))];pushHistory(scene);setScene(next);setSelected(next[next.length-1]?.id||null);setAiPrompt("");setAiBusy(false)},250)};
+ const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],floor:[0,0,0],fence:[0,.8,0],stairs:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};applyScene([...scene,item]);setSelected(id)};
  const saveScene=()=>{
   const id=projectId||"project-"+Date.now();
   const existing=projectList();
@@ -549,9 +558,9 @@ function Editor(){useStudioFullscreenLock();
   setProjectId(id);setProjects(next);window.history.replaceState(null,"","/editor?project="+encodeURIComponent(id));
   setSaved(true);setTimeout(()=>setSaved(false),1000);
  };
- const del=()=>{if(selected==null)return;setScene(s=>s.filter(o=>o.id!==selected));setSelected(null)};
- const dup=()=>{const o=scene.find(x=>x.id===selected);if(o){const id=Date.now();setScene(s=>[...s,{...o,id,name:o.name+" copy",x:o.x+.6,z:o.z+.6}]);setSelected(id)}};
- const reset=()=>{setScene(sceneSeed);setSelected(sceneSeed[0]?.id||null)};
+ const del=()=>{if(selected==null)return;applyScene(scene.filter(o=>o.id!==selected));setSelected(null)};
+ const dup=()=>{const o=scene.find(x=>x.id===selected);if(o){const id=Date.now();applyScene([...scene,{...o,id,name:o.name+" copy",x:o.x+.6,z:o.z+.6}]);setSelected(id)}};
+ const reset=()=>{applyScene(sceneSeed.map(o=>({...o})));setSelected(sceneSeed[0]?.id||null)};
  const toggleFullscreen=async()=>{
  try{
   if(!document.fullscreenElement){
@@ -563,7 +572,7 @@ function Editor(){useStudioFullscreenLock();
   }
  }catch{}
 };
- useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();if(e.shiftKey)redo();else undo()}if(e.ctrlKey&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
+ useEffect(()=>{const onKey=e=>{if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveScene()}if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();if(e.shiftKey)redo();else undo()}if(e.ctrlKey&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();if(e.shiftKey)redo();else undo()}if(e.ctrlKey&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}if(e.key==="Delete"||e.key==="Backspace"){if(document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")del()}if(e.key.toLowerCase()==="w")setTool("move");if(e.key.toLowerCase()==="e")setTool("rotate");if(e.key.toLowerCase()==="r")setTool("scale");if(e.key.toLowerCase()==="q")setTool("select");if(e.ctrlKey&&e.key.toLowerCase()==="d"){e.preventDefault();dup()}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected,scene]);
  const objectCatalog={
  es:[["cube","Cubo"],["wall","Pared"],["sphere","Esfera"],["cylinder","Cilindro"],["cone","Cono"],["torus","Toro"],["capsule","Cápsula"],["plane","Plano"],["floor","Suelo"],["fence","Valla"],["stairs","Escaleras"],["light","Luz"],["sound","Sonido"],["spawn","Punto de aparición"],["camera","Cámara"],["text","Texto"]],
  en:[["cube","Cube"],["wall","Wall"],["sphere","Sphere"],["cylinder","Cylinder"],["cone","Cone"],["torus","Torus"],["capsule","Capsule"],["plane","Plane"],["floor","Floor"],["fence","Fence"],["stairs","Stairs"],["light","Light"],["sound","Sound"],["spawn","Spawn"],["camera","Camera"],["text","Text"]],
@@ -604,9 +613,9 @@ const groups=objectCatalog[lang]||objectCatalog.en;
     </div>
     <div className="studio-sidebar-section">{t.quickActions}</div>
     <div className="studio-sidebar-actions">
-     <button title="Deshacer (Ctrl+Z)" onClick={undo} disabled={!past.length}>↶ Deshacer</button><button title="Rehacer (Ctrl+Y)" onClick={redo} disabled={!future.length}>↷ Rehacer</button><button title={t.duplicate} onClick={dup}>＋ {t.duplicate}</button><button title={t.deleteObject} onClick={del}>⌫ {t.deleteObject}</button><button title={t.reset} onClick={reset}>↺ {t.reset}</button>
+     <button title="Deshacer (Ctrl+Z)" onClick={undo} disabled={!past.length}>↶ Deshacer</button><button title="Rehacer (Ctrl+Y)" onClick={redo} disabled={!future.length}>↷ Rehacer</button><button title="Deshacer (Ctrl+Z)" onClick={undo} disabled={!past.length}>↶ Deshacer</button><button title="Rehacer (Ctrl+Y)" onClick={redo} disabled={!future.length}>↷ Rehacer</button><button title={t.duplicate} onClick={dup}>＋ {t.duplicate}</button><button title={t.deleteObject} onClick={del}>⌫ {t.deleteObject}</button><button title={t.reset} onClick={reset}>↺ {t.reset}</button>
     </div>
-    <div className="studio-panel-preview">{panel==="create"&&<><strong>{t.objects} · 500</strong><div className="studio-object-grid">{STUDIO_OBJECT_CATALOG.map(([type,label],i)=><button key={type+"-"+i} title={label} aria-label={label} onClick={()=>add(type)}>{label}</button>)}</div></>}{panel==="scene"&&<><strong>{t.hierarchy}</strong><div className="studio-scene-list">{scene.map(o=><button key={o.id} title={o.name} className={selected===o.id?"active":""} onClick={()=>setSelected(o.id)}>{o.name}</button>)}</div></>}</div><div className="studio-ai-panel"><div><b>✦ Eskådin IA</b><span>constructor de escenas</span></div><textarea value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder="ej. crea una casa con árboles y una carretera"/><button onClick={runAI} disabled={aiBusy}>{aiBusy?"Construyendo…":"Construir con IA"}</button></div><div className="studio-sidebar-spacer"/>
+    <div className="studio-panel-preview">{panel==="create"&&<><strong>{t.objects} · 500</strong><div className="studio-object-grid">{STUDIO_OBJECT_CATALOG.map(([type,label],i)=><button key={type+"-"+i} title={label} aria-label={label} onClick={()=>add(type)}>{label}</button>)}</div></>}{panel==="scene"&&<><strong>{t.hierarchy}</strong><div className="studio-scene-list">{scene.map(o=><button key={o.id} title={o.name} className={selected===o.id?"active":""} onClick={()=>setSelected(o.id)}>{o.name}</button>)}</div></>}</div><div className="studio-ai-panel"><div><b>✦ Eskådin IA</b><span>constructor de escenas</span></div><textarea value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder="ej. crea una casa con árboles y una carretera"/><button onClick={runAI} disabled={aiBusy}>{aiBusy?"Construyendo…":"Construir con IA"}</button></div><div className="studio-ai-panel"><div><b>✦ Eskådin IA</b><span>constructor de escenas</span></div><textarea value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder="ej. crea una casa con árboles y una carretera"/><button onClick={runAI} disabled={aiBusy}>{aiBusy?"Construyendo…":"Construir con IA"}</button></div><div className="studio-sidebar-spacer"/>
     <div className="studio-sidebar-actions bottom-actions">
      <button title={t.fullscreen} onClick={toggleFullscreen}>⛶ {t.fullscreen}</button><button title={t.save} onClick={saveScene}>✓ {saved?t.save:t.save}</button><Link title={t.publish} className="studio-publish" to="/publish">↗ {t.publish}</Link>
     </div>
@@ -616,7 +625,7 @@ const groups=objectCatalog[lang]||objectCatalog.en;
      <section className="editor-center">
       <div className="viewport-project"><strong>{currentName}</strong><span>● {t.local} · {scene.length} {t.objectsCount}</span></div>
       <div className="viewport-hud"><span>{t.viewport}</span><span>{t.orbit}</span></div>
-      <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} beginHistory={()=>{historyLock.current=true;pushHistory(scene)}} endHistory={()=>{historyLock.current=false}} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
+      <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} beginHistory={()=>{historyLock.current=true;pushHistory(scene)}} endHistory={()=>{historyLock.current=false}} beginHistory={()=>{historyLock.current=true;pushHistory(scene)}} endHistory={()=>{historyLock.current=false}} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
       <div className="viewport-badges"><span>{t.webgl}</span><span>{t.shadows}</span><span>{t.touch}</span><span>{wireframe?t.wire:t.solid}</span><span>{snap?t.snapOn:t.snapOff}</span></div>
      </section>
      <aside className="editor-dock right-dock">
