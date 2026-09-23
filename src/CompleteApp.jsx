@@ -98,25 +98,49 @@ function Games(){const[,t]=useLang();const[games]=useGames();const[q,setQ]=useSt
 function Game(){const[,t]=useLang();const{id}=useParams();const[games,setGames]=useGames();const game=games.find(g=>String(g.id)===id)||null;const[liked,setLiked]=useState(false);useEffect(()=>{if(game){const viewKey="eskadin-viewed-"+game.id;if(!sessionStorage.getItem(viewKey)){sessionStorage.setItem(viewKey,"1");localStorage.setItem("eskadin-stat-views",String(Number(localStorage.getItem("eskadin-stat-views")||0)+1))}const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.explore){p.explore=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+12))}}},[id]);if(!game)return <main className="page narrow"><Link className="back" to="/games">← {t.back}</Link><div className="form-card"><h2>No hay juegos publicados todavía.</h2><p className="muted">Publica una experiencia desde una cuenta de desarrollador para poder explorarla.</p><Link className="button button-primary" to="/developer/register">{t.createDeveloper}</Link></div></main>;const toggleLike=()=>{if(liked){setLiked(false);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Math.max(0,Number(g.likes||0)-1)}:g));return}setLiked(true);setGames(gs=>gs.map(g=>String(g.id)===String(game.id)?{...g,likes:Number(g.likes||0)+1}:g));const p=read("eskadin-mission-progress",{play:false,explore:false,like:false});if(!p.like){p.like=true;save("eskadin-mission-progress",p);localStorage.setItem("eskadin-fc",String(Number(localStorage.getItem("eskadin-fc")||0)+5))}};return <main className="page"><Link className="back" to="/games">← {t.back}</Link><div className="game-hero"><div className={"game-cover big "+game.color}><span>{game.title}</span></div><div><div className="eyebrow">{game.tag} · {game.author}</div><h1 className="page-title">{game.title}</h1><p>{game.description}</p><p className="muted">{game.genre} · {game.players.toLocaleString()} playing · {Number(game.likes||0).toLocaleString()} likes</p><div className="actions"><Link className="button button-primary" to={"/games/"+game.id+"/play"}>▶ {t.play}</Link><button className="button button-ghost" onClick={toggleLike}>{liked?"♥":"♡"} {liked?t.liked:t.like}</button></div></div></div></main>}
 function createEskadinR15Avatar(user={}){
  const root=new THREE.Group();root.name="EskadinR15";
- const skin=new THREE.MeshStandardMaterial({color:user.skin||0xf2c7a5,roughness:.78});
- const shirt=new THREE.MeshStandardMaterial({color:user.shirt||0x5b7cff,roughness:.72});
- const pants=new THREE.MeshStandardMaterial({color:user.pants||0x202638,roughness:.8});
+ const hex=v=>{if(typeof v==="number")return v;const n=parseInt(String(v||"").replace("#",""),16);return Number.isFinite(n)?n:0xf2c7a5};
+ const skin=new THREE.MeshStandardMaterial({color:hex(user.skin||"#f2c7a5"),roughness:.76,metalness:0});
+ const shirt=new THREE.MeshStandardMaterial({color:hex(user.shirt||"#5b7cff"),roughness:.72,metalness:0});
+ const pants=new THREE.MeshStandardMaterial({color:hex(user.pants||"#202638"),roughness:.8,metalness:0});
+ const hair=new THREE.MeshStandardMaterial({color:hex(user.hairColor||"#241b18"),roughness:.68,metalness:0});
+ const accessory=new THREE.MeshStandardMaterial({color:hex(user.accessoryColor||"#e95d6a"),roughness:.62,metalness:.08});
  const bone=(name,x,y,z,parent=root)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g};
- const mesh=(p,name,w,h,d,mat)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat.clone());m.name=name;m.castShadow=true;m.receiveShadow=true;p.add(m);return m};
- const lowerTorso=bone("LowerTorso",0,1.47,0),upperTorso=bone("UpperTorso",0,.55,0,lowerTorso),neck=bone("Neck",0,.42,0,upperTorso),head=bone("Head",0,.36,0,neck);
- const lUL=bone("LeftUpperLeg",-0.27,-.34,0,lowerTorso),lLL=bone("LeftLowerLeg",0,-.59,0,lUL),lF=bone("LeftFoot",0,-.56,-.12,lLL);
- const rUL=bone("RightUpperLeg",.27,-.34,0,lowerTorso),rLL=bone("RightLowerLeg",0,-.59,0,rUL),rF=bone("RightFoot",0,-.56,-.12,rLL);
- const lUA=bone("LeftUpperArm",-0.67,.27,0,upperTorso),lLA=bone("LeftLowerArm",0,-.55,0,lUA),lH=bone("LeftHand",0,-.49,0,lLA);
- const rUA=bone("RightUpperArm",.67,.27,0,upperTorso),rLA=bone("RightLowerArm",0,-.55,0,rUA),rH=bone("RightHand",0,-.49,0,rLA);
- mesh(lowerTorso,"LowerTorso",.86,.50,.48,shirt);mesh(upperTorso,"UpperTorso",1.02,.68,.52,shirt);mesh(head,"Head",.66,.68,.66,skin);
- mesh(lUL,"LeftUpperLeg",.44,.68,.46,pants);mesh(lLL,"LeftLowerLeg",.40,.62,.42,pants);mesh(lF,"LeftFoot",.46,.22,.72,pants);
- mesh(rUL,"RightUpperLeg",.44,.68,.46,pants);mesh(rLL,"RightLowerLeg",.40,.62,.42,pants);mesh(rF,"RightFoot",.46,.22,.72,pants);
- mesh(lUA,"LeftUpperArm",.36,.56,.40,shirt);mesh(lLA,"LeftLowerArm",.32,.52,.36,skin);mesh(lH,"LeftHand",.34,.28,.34,skin);
- mesh(rUA,"RightUpperArm",.36,.56,.40,shirt);mesh(rLA,"RightLowerArm",.32,.52,.36,skin);mesh(rH,"RightHand",.34,.28,.34,skin);
+ const mesh=(p,name,w,h,d,mat,round=.06)=>{const g=new THREE.Group();g.name=name;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat.clone());m.castShadow=true;m.receiveShadow=true;g.add(m);p.add(g);return g};
+ const scaleX=Math.max(.78,Math.min(1.22,Number(user.bodyWidth)||1));
+ const scaleY=Math.max(.88,Math.min(1.14,Number(user.bodyHeight)||1));
+ const headScale=Math.max(.85,Math.min(1.18,Number(user.headScale)||1));
+ const lowerTorso=bone("LowerTorso",0,1.47*scaleY,0);
+ const upperTorso=bone("UpperTorso",0,.55*scaleY,0,lowerTorso);
+ const neck=bone("Neck",0,.42*scaleY,0,upperTorso);
+ const head=bone("Head",0,.36*scaleY,0,neck);
+ const lUL=bone("LeftUpperLeg",-.27*scaleX,-.34*scaleY,0,lowerTorso),lLL=bone("LeftLowerLeg",0,-.59*scaleY,0,lUL),lF=bone("LeftFoot",0,-.56*scaleY,-.12,lLL);
+ const rUL=bone("RightUpperLeg",.27*scaleX,-.34*scaleY,0,lowerTorso),rLL=bone("RightLowerLeg",0,-.59*scaleY,0,rUL),rF=bone("RightFoot",0,-.56*scaleY,-.12,rLL);
+ const lUA=bone("LeftUpperArm",-.67*scaleX,.27*scaleY,0,upperTorso),lLA=bone("LeftLowerArm",0,-.55*scaleY,0,lUA),lH=bone("LeftHand",0,-.49*scaleY,0,lLA);
+ const rUA=bone("RightUpperArm",.67*scaleX,.27*scaleY,0,upperTorso),rLA=bone("RightLowerArm",0,-.55*scaleY,0,rUA),rH=bone("RightHand",0,-.49*scaleY,0,rLA);
+ mesh(lowerTorso,"LowerTorsoMesh",.86*scaleX,.50*scaleY,.48,shirt);
+ mesh(upperTorso,"UpperTorsoMesh",1.02*scaleX,.68*scaleY,.52,shirt);
+ const headMesh=mesh(head,"HeadMesh",.66*headScale,.68*headScale,.66*headScale,skin);
+ mesh(lUL,"LeftUpperLegMesh",.44*scaleX,.68*scaleY,.46,pants);mesh(lLL,"LeftLowerLegMesh",.40*scaleX,.62*scaleY,.42,pants);mesh(lF,"LeftFootMesh",.46*scaleX,.22*scaleY,.72,pants);
+ mesh(rUL,"RightUpperLegMesh",.44*scaleX,.68*scaleY,.46,pants);mesh(rLL,"RightLowerLegMesh",.40*scaleX,.62*scaleY,.42,pants);mesh(rF,"RightFootMesh",.46*scaleX,.22*scaleY,.72,pants);
+ mesh(lUA,"LeftUpperArmMesh",.36*scaleX,.56*scaleY,.40,shirt);mesh(lLA,"LeftLowerArmMesh",.32*scaleX,.52*scaleY,.36,skin);mesh(lH,"LeftHandMesh",.34*scaleX,.28*scaleY,.34,skin);
+ mesh(rUA,"RightUpperArmMesh",.36*scaleX,.56*scaleY,.40,shirt);mesh(rLA,"RightLowerArmMesh",.32*scaleX,.52*scaleY,.36,skin);mesh(rH,"RightHandMesh",.34*scaleX,.28*scaleY,.34,skin);
+ const hairType=user.hair||"classic";
+ if(hairType!=="none"){
+  const h=new THREE.Mesh(new THREE.BoxGeometry(.72*headScale,.28*headScale,.70*headScale),hair.clone());h.position.set(0,.31*headScale,.02);h.scale.set(1,.72,1);h.castShadow=true;head.add(h);
+ }
+ const faceType=user.face||"smile";
+ const face=new THREE.Group();face.name="Face";
+ const eyeMat=new THREE.MeshBasicMaterial({color:0x151922});
+ [-.13,.13].forEach(x=>{const eye=new THREE.Mesh(new THREE.SphereGeometry(.035*headScale,12,8),eyeMat);eye.position.set(x*headScale,.04,.325*headScale);face.add(eye)});
+ if(faceType==="cool"){const glasses=new THREE.Mesh(new THREE.BoxGeometry(.42*headScale,.07,.035),new THREE.MeshStandardMaterial({color:0x111827,roughness:.3,metalness:.2}));glasses.position.set(0,.05,.345*headScale);face.add(glasses)}
+ head.add(face);
+ const hatType=user.hat||"none";
+ if(hatType==="cap"){const cap=new THREE.Mesh(new THREE.BoxGeometry(.78*headScale,.16,.74*headScale),accessory.clone());cap.position.set(0,.48*headScale,.02);cap.castShadow=true;head.add(cap)}
+ if(hatType==="crown"){const crown=new THREE.Mesh(new THREE.CylinderGeometry(.30*headScale,.38*headScale,.18*headScale,6),new THREE.MeshStandardMaterial({color:0xffd447,metalness:.65,roughness:.28}));crown.position.y=.50*headScale;crown.castShadow=true;head.add(crown)}
  const attachments={};const attach=(name,parent,pos)=>{const a=new THREE.Object3D();a.name=name;a.position.set(...pos);parent.add(a);attachments[name]=a};
- attach("HairAttachment",head,[0,.39,0]);attach("HatAttachment",head,[0,.42,0]);attach("FaceFrontAttachment",head,[0,0,.34]);attach("NeckAttachment",neck,[0,.03,0]);
- attach("RightShoulderAttachment",rUA,[0,.28,0]);attach("LeftShoulderAttachment",lUA,[0,.28,0]);attach("BodyFrontAttachment",upperTorso,[0,.1,.27]);attach("BodyBackAttachment",upperTorso,[0,.1,-.27]);attach("WaistCenterAttachment",lowerTorso,[0,-.22,0]);
- root.userData.avatarParts=15;root.userData.r15=true;root.userData.height=3.13;root.userData.attachments=attachments;
+ attach("HairAttachment",head,[0,.39*headScale,0]);attach("HatAttachment",head,[0,.44*headScale,0]);attach("FaceFrontAttachment",head,[0,0,.34*headScale]);attach("NeckAttachment",neck,[0,.03,0]);
+ attach("RightShoulderAttachment",rUA,[0,.28*scaleY,0]);attach("LeftShoulderAttachment",lUA,[0,.28*scaleY,0]);attach("BodyFrontAttachment",upperTorso,[0,.1*scaleY,.27]);attach("BodyBackAttachment",upperTorso,[0,.1*scaleY,-.27]);attach("WaistCenterAttachment",lowerTorso,[0,-.22*scaleY,0]);
+ root.userData.avatarParts=15;root.userData.r15=true;root.userData.height=3.13*scaleY;root.userData.scale={bodyWidth:scaleX,bodyHeight:scaleY,headScale};root.userData.attachments=attachments;
  root.userData.r15Joints=[["LowerTorso","UpperTorso"],["UpperTorso","Neck"],["Neck","Head"],["LowerTorso","LeftUpperLeg"],["LeftUpperLeg","LeftLowerLeg"],["LeftLowerLeg","LeftFoot"],["LowerTorso","RightUpperLeg"],["RightUpperLeg","RightLowerLeg"],["RightLowerLeg","RightFoot"],["UpperTorso","LeftUpperArm"],["LeftUpperArm","LeftLowerArm"],["LeftLowerArm","LeftHand"],["UpperTorso","RightUpperArm"],["RightUpperArm","RightLowerArm"],["RightLowerArm","RightHand"]];
  root.userData.animate=(time,moving,grounded)=>{const w=moving?Math.sin(time*9)*.55:0,idle=Math.sin(time*2.2)*.018;lUL.rotation.x=w;rUL.rotation.x=-w;lLL.rotation.x=Math.max(0,-w)*.45;rLL.rotation.x=Math.max(0,w)*.45;lF.rotation.x=-w*.18;rF.rotation.x=w*.18;lUA.rotation.x=-w*.7;rUA.rotation.x=w*.7;lLA.rotation.x=Math.abs(w)*.18;rLA.rotation.x=Math.abs(w)*.18;upperTorso.rotation.z=idle*.45;neck.rotation.z=idle*.2;if(!grounded){lUL.rotation.x=-.18;rUL.rotation.x=.18;lUA.rotation.x=.28;rUA.rotation.x=-.28}};
  return root;
@@ -848,8 +872,46 @@ function Marketplace(){
   {!builtins.length&&!customFiltered.length&&<div className="form-card"><h2>No hay objetos con ese filtro.</h2><Link className="button button-primary" to="/object-studio">Abrir Object Studio</Link></div>}
  </main>
 }
-function Account(){const[,t]=useLang();const{user,logout}=useUser();const current=user||{name:"Eskådin Player"};return <main className="roblox-page account-page"><div className="profile-hero"><div className="profile-avatar"><R15AvatarPreview user={current} size="xl"/></div><div><span className="roblox-kicker">{t.profile}</span><h1>{current.name}</h1><p>@{normalizeIdentity(current.name)}</p><div className="profile-actions"><Link to="/editor" className="roblox-pill">Crear</Link><Link to="/avatar" className="roblox-pill">Avatar</Link></div></div></div><div className="profile-grid"><section className="roblox-card"><h2>{t.aboutMe}</h2><p>{current.bio||t.playerOf}</p><div className="profile-stats"><b>{Number(localStorage.getItem("eskadin-fc")||0)}<small>F¢</small></b><b>0<small>{t.games}</small></b><b>0<small>{t.sessions}</small></b></div></section><section className="roblox-card"><h2>{t.avatar}</h2><div className="avatar-preview-row"><R15AvatarPreview user={current} size="md"/><span>{t.avatarReady}</span></div></section><section className="roblox-card"><h2>{t.accountSection}</h2><div className="account-actions"><Link className="button button-ghost" to="/wallet">{t.wallet}</Link><Link className="button button-ghost" to="/settings">{t.settings}</Link><Link className="button danger-button" to="/account/delete">{t.delete}</Link><button className="button button-ghost" onClick={logout}>{t.logout}</button></div></section></div></main>}
-
+function Account(){
+ const[,t]=useLang();const{user,logout}=useUser();const current=user||{name:"Eskådin Player",bio:"",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
+ return <main className="roblox-page account-page roblox-inspired-page">
+  <div className="account-cover"><div className="account-cover-pattern"/></div>
+  <section className="account-header">
+   <div className="account-header-avatar"><R15AvatarPreview user={current} size="xl"/></div>
+   <div className="account-header-main"><span className="roblox-kicker">PERFIL</span><h1>{current.name}</h1><p>@{normalizeIdentity(current.name)}</p><div className="profile-actions"><Link to="/account/edit" className="roblox-pill">Editar perfil</Link><Link to="/avatar" className="roblox-pill">Editar avatar</Link></div></div>
+  </section>
+  <div className="account-tabs"><Link className="active" to="/account">Perfil</Link><Link to="/avatar">Avatar</Link><Link to="/marketplace">Inventario</Link></div>
+  <div className="profile-grid">
+   <section className="roblox-card"><h2>Acerca de</h2><p>{current.bio||"Todavía no has añadido una descripción."}</p><div className="profile-stats"><b>{Number(localStorage.getItem("eskadin-fc")||0)}<small>F¢</small></b><b>0<small>{t.games}</small></b><b>0<small>{t.sessions}</small></b></div></section>
+   <section className="roblox-card account-avatar-card"><h2>Avatar</h2><div className="avatar-preview-row"><R15AvatarPreview user={current} size="md"/><div><b>R15</b><p>Tu avatar personalizado aparece aquí y dentro de tus experiencias.</p><Link className="button button-ghost small" to="/avatar">Personalizar</Link></div></div></section>
+   <section className="roblox-card"><h2>Cuenta</h2><div className="account-actions"><Link className="button button-ghost" to="/account/edit">Editar cuenta</Link><Link className="button button-ghost" to="/settings">{t.settings}</Link><Link className="button button-ghost" to="/wallet">{t.wallet}</Link><Link className="button danger-button" to="/account/delete">{t.delete}</Link><button className="button button-ghost" onClick={logout}>{t.logout}</button></div></section>
+  </div>
+ </main>
+}
+function AccountEdit(){
+ const{user,login}=useUser();const current=user||{name:"Eskådin Player",bio:"",skin:"#f2c7a5",shirt:"#5b7cff",pants:"#202638",hair:"classic",face:"smile",hat:"none"};
+ const[form,setForm]=useState(current);const set=(k,v)=>setForm(x=>({...x,[k]:v}));const saveProfile=()=>login({...form,name:form.name.trim()||"Eskådin Player",bio:form.bio.trim()});
+ return <main className="roblox-page account-edit-page roblox-inspired-page">
+  <div className="roblox-titlebar"><div><span className="roblox-kicker">CUENTA</span><h1>Editar perfil</h1><p>Actualiza tu identidad, descripción y avatar.</p></div><Link className="roblox-pill" to="/account">Volver al perfil</Link></div>
+  <div className="account-edit-layout">
+   <section className="roblox-card account-edit-preview"><R15AvatarPreview user={form} size="xl"/><div><h2>{form.name||"Eskådin Player"}</h2><p>@{normalizeIdentity(form.name||"Eskådin Player")}</p></div></section>
+   <section className="roblox-card account-edit-form">
+    <h2>Información básica</h2>
+    <label>Nombre visible<input value={form.name||""} maxLength="24" onChange={e=>set("name",e.target.value)} placeholder="Tu nombre"/></label>
+    <label>Descripción<textarea value={form.bio||""} maxLength="160" onChange={e=>set("bio",e.target.value)} placeholder="Cuéntale algo a la comunidad…"/></label>
+    <h2>Colores del cuerpo</h2>
+    <div className="account-swatch-row"><span>Piel</span>{["#f2c7a5","#d89b72","#8d5524","#f7dfc5"].map(v=><button key={v} className={form.skin===v?"chosen":""} style={{background:v}} onClick={()=>set("skin",v)}/>)}</div>
+    <div className="account-swatch-row"><span>Camiseta</span>{["#5b7cff","#e95d6a","#58b89a","#9b6cff","#f2b84b"].map(v=><button key={v} className={form.shirt===v?"chosen":""} style={{background:v}} onClick={()=>set("shirt",v)}/>)}</div>
+    <div className="account-swatch-row"><span>Pantalón</span>{["#202638","#354a73","#4d3430","#29352d"].map(v=><button key={v} className={form.pants===v?"chosen":""} style={{background:v}} onClick={()=>set("pants",v)}/>)}</div>
+    <h2>Proporciones R15</h2>
+    <label>Anchura <input type="range" min=".78" max="1.22" step=".01" value={form.bodyWidth||1} onChange={e=>set("bodyWidth",Number(e.target.value))}/></label>
+    <label>Altura <input type="range" min=".88" max="1.14" step=".01" value={form.bodyHeight||1} onChange={e=>set("bodyHeight",Number(e.target.value))}/></label>
+    <label>Cabeza <input type="range" min=".85" max="1.18" step=".01" value={form.headScale||1} onChange={e=>set("headScale",Number(e.target.value))}/></label>
+    <div className="account-edit-actions"><button className="button button-primary" onClick={saveProfile}>Guardar cambios</button><Link className="button button-ghost" to="/account">Cancelar</Link></div>
+   </section>
+  </div>
+ </main>
+}
 function Settings(){const[lang,t]=useLang();const{setLang}=useContext(LangContext);return <main className="page narrow"><div className="eyebrow">{t.settings}</div><h1 className="page-title">{t.settings}</h1><div className="form-card"><label>{t.language}<select value={lang} onChange={e=>setLang(e.target.value)}>{Object.entries(LANG).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><p className="muted">{t.languageStored}</p></div></main>}
 
 function Login(){const[,t]=useLang();const{login}=useUser();const nav=useNavigate();const[name,setName]=useState("");return <main className="page narrow auth-page"><div className="form-card auth-card"><div className="eyebrow">{t.account}</div><h1>{t.login}</h1><p className="muted">Cuenta personal para jugar, guardar progreso y ganar F¢.</p><label>{t.email}<input type="email"/></label><label>{t.password}<input type="password"/></label><label>{t.displayName}<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"/></label><button className="button button-primary" onClick={()=>{login({name:name||"Eskådin Player"});nav("/account")}}>{t.login}</button><Link className="muted" to="/register">{t.register}</Link><Link className="muted" to="/developer/register">{t.createDeveloper} →</Link></div></main>}
@@ -860,4 +922,4 @@ function DeleteAccount(){const[,t]=useLang();const{logout}=useUser();const nav=u
 
 function NotFound(){const[,t]=useLang();return <main className="page notfound"><h1>404</h1><p>{t.pageEscaped}</p><Link className="button button-primary" to="/">{t.home}</Link></main>}
 
-export default function CompleteApp(){return <LangProvider><AuthProvider><Shell><Routes><Route path="/" element={<RootRoute/>}/><Route path="/home" element={<Games/>}/><Route path="/games" element={<Games/>}/><Route path="/marketplace" element={<Marketplace/>}/><Route path="/object-studio" element={<ObjectStudio/>}/><Route path="/avatar" element={<AvatarEditor/>}/><Route path="/games/:id" element={<Game/>}/><Route path="/games/:id/play" element={<Play/>}/><Route path="/editor" element={<Editor/>}/><Route path="/developer" element={<Developer/>}/><Route path="/projects" element={<Projects/>}/><Route path="/publish" element={<Publish/>}/><Route path="/missions" element={<Missions/>}/><Route path="/wallet" element={<Wallet/>}/><Route path="/statistics" element={<Statistics/>}/><Route path="/account" element={<Account/>}/><Route path="/settings" element={<Settings/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/developer/register" element={<DeveloperRegister/>}/><Route path="/developer/account" element={<DeveloperAccount/>}/><Route path="/account/delete" element={<DeleteAccount/>}/><Route path="*" element={<NotFound/>}/></Routes></Shell></AuthProvider></LangProvider>}
+export default function CompleteApp(){return <LangProvider><AuthProvider><Shell><Routes><Route path="/" element={<RootRoute/>}/><Route path="/home" element={<Games/>}/><Route path="/games" element={<Games/>}/><Route path="/marketplace" element={<Marketplace/>}/><Route path="/object-studio" element={<ObjectStudio/>}/><Route path="/avatar" element={<AvatarEditor/>}/><Route path="/games/:id" element={<Game/>}/><Route path="/games/:id/play" element={<Play/>}/><Route path="/editor" element={<Editor/>}/><Route path="/developer" element={<Developer/>}/><Route path="/projects" element={<Projects/>}/><Route path="/publish" element={<Publish/>}/><Route path="/missions" element={<Missions/>}/><Route path="/wallet" element={<Wallet/>}/><Route path="/statistics" element={<Statistics/>}/><Route path="/account" element={<Account/>}/><Route path="/account/edit" element={<AccountEdit/>}/><Route path="/settings" element={<Settings/>}/><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/developer/register" element={<DeveloperRegister/>}/><Route path="/developer/account" element={<DeveloperAccount/>}/><Route path="/account/delete" element={<DeleteAccount/>}/><Route path="*" element={<NotFound/>}/></Routes></Shell></AuthProvider></LangProvider>}
