@@ -182,7 +182,11 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   // Use Three.js's capsule/Octree character collision instead of the old box-only resolver.
   // The capsule's bottom is at the player's feet, so the visible R15 model and collider share Y=0.
   const collisionMeshes=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
-  const collisionRoot=new THREE.Group();collisionMeshes.forEach(m=>collisionRoot.add(m));collisionRoot.updateMatrixWorld(true);
+  // Build the Octree from clones so the visible meshes stay attached to scene3.
+  // Object3D can only have one parent, so moving the real meshes into collisionRoot would make the map disappear.
+  const collisionRoot=new THREE.Group();
+  collisionMeshes.forEach(m=>collisionRoot.add(m.clone(true)));
+  collisionRoot.updateMatrixWorld(true);
   const worldOctree=new Octree().fromGraphNode(collisionRoot);
   const radius=.32, capsuleHeight=1.26;
   const playerCollider=new Capsule(new THREE.Vector3(0,radius,4),new THREE.Vector3(0,radius+capsuleHeight,4),radius);
