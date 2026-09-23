@@ -573,7 +573,7 @@ function aiEditScene(scene,prompt){
  const next=JSON.parse(JSON.stringify(scene));
  const colorMap={
   rojo:"#ef4444",roja:"#ef4444",red:"#ef4444",
-  azul:"#3b82f6",azul:""#3b82f6",blue:"#3b82f6",
+  azul:"#3b82f6",blue:"#3b82f6",
   verde:"#22c55e",green:"#22c55e",
   amarillo:"#facc15",amarilla:"#facc15",yellow:"#facc15",
   naranja:"#f97316",orange:"#f97316",
