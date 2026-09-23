@@ -1,6 +1,6 @@
 export async function onRequestGet({ request, env }) {
   if (!env.DB) return Response.json({ error: "DB binding missing" }, { status: 503 });
-  const key = new URL(request.url).searchParams.get("key");
+  const key = request.headers.get("X-Eskadin-Key");
   if (!key) return Response.json({ error: "Missing key" }, { status: 400 });
   const row = await env.DB.prepare("SELECT games FROM user_games WHERE user_key = ?1").bind(key).first();
   return Response.json({ games: row?.games ? JSON.parse(row.games) : [] });
