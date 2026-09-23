@@ -451,7 +451,7 @@ body:has(.editor-page) .nav{padding:0 24px}
 .runtime-crosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 20px ui-monospace,monospace;color:rgba(255,255,255,.72);pointer-events:none}
 .runtime-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:rgba(7,10,15,.72);color:#b8c1cf;font:700 9px ui-monospace,monospace;pointer-events:none;white-space:nowrap}
 .runtime-exit{position:absolute;top:14px;right:14px;z-index:5;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(7,10,15,.78);color:#eef2f7;padding:9px 12px;font:800 10px ui-monospace,monospace}
-.touch-stick{position:absolute;left:24px;bottom:24px;width:116px;height:116px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(10,14,20,.38);display:grid;place-items:center;color:#8792a2;font:800 9px ui-monospace,monospace;pointer-events:none}
+.touch-stick{position:absolute;left:24px;bottom:24px;width:150px;height:150px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(10,14,20,.38);display:grid;place-items:center;color:#8792a2;font:800 9px ui-monospace,monospace;pointer-events:none}
 .touch-jump{position:absolute;right:26px;bottom:28px;width:82px;height:82px;border-radius:50%;border:1px solid rgba(184,255,90,.35);background:rgba(184,255,90,.12);color:#dfffb9;font:900 10px ui-monospace,monospace;touch-action:manipulation}
 @media(max-width:700px){.game-runtime{min-height:calc(100vh - 52px)}.runtime-hint{bottom:9px;font-size:7px;max-width:72%;text-align:center;white-space:normal}.runtime-exit{top:9px;right:9px}.touch-stick{left:16px;bottom:20px}.touch-jump{right:18px;bottom:22px}}
 
@@ -471,7 +471,7 @@ body:has(.editor-page) .nav{padding:0 24px}
 
 .touch-look-zone{position:absolute;inset:0 0 0 45%;z-index:2;touch-action:none;pointer-events:auto}
 .touch-stick{z-index:6;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-.touch-stick-knob{position:absolute;width:54px;height:54px;left:50%;top:50%;transform:translate3d(0,0,0);margin:-27px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);box-shadow:0 4px 18px rgba(0,0,0,.25);pointer-events:none}
+.touch-stick-knob{position:absolute;width:68px;height:68px;left:50%;top:50%;transform:translate3d(0,0,0);margin:-34px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);box-shadow:0 4px 18px rgba(0,0,0,.25);pointer-events:none}
 .touch-stick span{position:relative;z-index:1;pointer-events:none;opacity:.7}
 .touch-jump{z-index:7}
 .runtime-exit{z-index:8}
@@ -992,7 +992,7 @@ body:has(.editor-page) .nav{padding:0 24px}
 
 .viewport-zoom-controls{position:absolute;right:16px;top:16px;z-index:20;display:flex;flex-direction:column;gap:8px}.viewport-zoom-controls button{width:44px;height:44px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(10,14,22,.86);color:#fff;font-size:24px;font-weight:700;cursor:pointer;backdrop-filter:blur(12px);touch-action:manipulation}.viewport-zoom-controls button:active{transform:scale(.94)}@media(max-width:620px){.viewport-zoom-controls{right:10px;top:10px}.viewport-zoom-controls button{width:50px;height:50px}}
 
-.runtime-chat-button{position:absolute;top:18px;right:18px;z-index:40;width:48px;height:48px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(10,14,22,.88);color:#fff;font-size:22px;display:grid;place-items:center;backdrop-filter:blur(12px);touch-action:manipulation;cursor:pointer}
+.runtime-top-actions{position:absolute;top:18px;right:18px;z-index:40;display:flex;align-items:center;gap:8px}\n.runtime-chat-button{position:relative;top:auto;right:auto;z-index:40;width:48px;height:48px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(10,14,22,.88);color:#fff;font-size:22px;display:grid;place-items:center;backdrop-filter:blur(12px);touch-action:manipulation;cursor:pointer}
 .runtime-chat-button:active{transform:scale(.94)}
 .runtime-chat-panel{position:absolute;top:76px;right:18px;z-index:39;width:min(360px,calc(100vw - 36px));height:min(440px,calc(100dvh - 100px));display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.13);border-radius:16px;background:rgba(8,11,17,.94);color:#fff;box-shadow:0 18px 60px rgba(0,0,0,.4);backdrop-filter:blur(18px);overflow:hidden}
 .runtime-chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -1060,7 +1060,7 @@ body:has(.editor-page) .nav{padding:0 24px}
 .object-studio-preview{display:flex;flex-direction:column;min-width:0}
 .object-studio-preview-bar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px}
 .object-studio-preview-bar span{color:#758398;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.object-studio-preview>.three-editor-viewport{flex:1;min-height:580px}
+.object-studio-preview>.three-editor-viewport{flex:1;min-height:580px;touch-action:none}
 .object-studio-tools{display:flex;gap:6px;flex-wrap:wrap;padding:10px;border-top:1px solid rgba(255,255,255,.08);background:#0d131c}
 .object-studio-tools button.chosen,.object-studio-type-grid button.chosen{background:rgba(91,124,255,.2);border-color:#6f8dff;color:#fff}
 .object-studio-inspector{gap:13px}
@@ -1240,3 +1240,21 @@ body:has(.editor-page) .editor-page{
 .object-studio-panel label{display:block;margin:10px 0}
 .object-studio-panel label input,.object-studio-panel label select,.object-studio-panel label textarea{width:100%;box-sizing:border-box;margin-top:5px}
 .object-studio-panel input[type="color"]{height:38px;padding:2px}
+
+
+/* 2026-09-23 interaction polish */
+.runtime-top-actions{position:absolute;top:18px;right:18px;z-index:50;display:flex;align-items:center;gap:8px}
+.runtime-top-actions .runtime-chat-button,.runtime-top-actions .runtime-menu-button{position:relative;inset:auto}
+.runtime-top-actions .runtime-chat-button{width:48px;height:48px}
+.runtime-top-actions .runtime-menu-button{width:48px;height:48px}
+.runtime-chat-panel{z-index:49}
+.touch-stick{width:150px;height:150px;left:24px;bottom:24px}
+.touch-stick-knob{width:68px;height:68px;margin:-34px}
+@media(max-width:700px){
+  .touch-stick{width:150px;height:150px;left:18px;bottom:20px}
+  .touch-stick-knob{width:68px;height:68px;margin:-34px}
+}
+@media(max-width:620px){
+  .runtime-top-actions{top:12px;right:12px;gap:7px}
+  .runtime-top-actions .runtime-chat-button,.runtime-top-actions .runtime-menu-button{width:50px;height:50px}
+}
