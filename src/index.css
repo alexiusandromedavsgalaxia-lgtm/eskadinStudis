@@ -1274,3 +1274,9 @@ body:has(.editor-page) .editor-page{
 .studio-script-tabs{display:flex;gap:5px;overflow:auto;margin:8px 0}.studio-script-tabs button{white-space:nowrap;border:1px solid rgba(140,160,200,.2);background:#101622;color:inherit;border-radius:7px;padding:6px 8px}.studio-script-tabs button.active{background:#26355a}
 .studio-code-editor{width:100%;min-height:260px;box-sizing:border-box;resize:vertical;background:#080b11;color:#dfe7ff;border:1px solid rgba(140,160,200,.22);border-radius:9px;padding:10px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2}
 .studio-script-actions{display:flex;gap:6px;margin-top:7px}.studio-script-actions button{flex:1;border:0;border-radius:8px;padding:8px;background:#202b42;color:inherit;cursor:pointer}
+
+/* Runtime camera controls: mobile/tablet/desktop */
+.runtime-camera-switcher{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(18,22,30,.78);backdrop-filter:blur(18px);box-shadow:0 8px 28px rgba(0,0,0,.28)}
+.runtime-camera-switcher button{border:0;background:transparent;color:#dce3ef;font:700 11px/1 system-ui;padding:9px 11px;border-radius:10px;cursor:pointer}
+.runtime-camera-switcher button.active{background:#fff;color:#111827}
+@media(max-width:700px){.runtime-camera-switcher{top:10px;gap:2px}.runtime-camera-switcher button{padding:8px 9px;font-size:10px}}
