@@ -139,7 +139,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   scene3.fog=new THREE.Fog(0x101722,18,70);
   const camera=new THREE.PerspectiveCamera(70,1,.05,120);
   const renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.domElement.style.cssText="width:100%;height:100%;display:block;touch-action:none";
@@ -224,7 +224,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    return {x,z};
   };
   const forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
-  let yaw=0,pitch=-.18,last=performance.now(),raf=0;
+  let yaw=Math.PI,pitch=-.12,last=performance.now(),raf=0;
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};
   window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
@@ -333,7 +333,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7.2;jumpRef.current=false}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,grounded);
    player.rotation.y=yaw;
-   camera.position.set(player.position.x,player.position.y+1.62,player.position.z);
+   camera.position.set(player.position.x,player.position.y+1.52,player.position.z+0.08);
    camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
    renderer.render(scene3,camera);
   };
@@ -770,6 +770,7 @@ function ObjectStudio(){
     </select>
     {!isAnim&&<div className="object-studio-creator-tools">
      <button>＋ Añadir forma</button><button>◈ Añadir malla</button><button>▧ Textura</button><button>✥ Ajustar al avatar</button>
+     <p className="object-studio-tool-note">El maniquí R15 queda siempre visible para crear y ajustar el artículo directamente sobre el avatar.</p>
     </div>}
     {isAnim&&<div className="object-studio-creator-tools">
      <button onClick={()=>setFrame(f=>Math.max(0,f-1))}>◀ Frame</button><button onClick={()=>setFrame(f=>f+1)}>Frame ▶</button><button onClick={()=>setFrame(0)}>↺ Inicio</button>
@@ -778,7 +779,7 @@ function ObjectStudio(){
    <section className="object-studio-preview">
     <div className="object-studio-preview-bar"><b>{isAnim?"EDITOR DE ANIMACIÓN":"EDITOR DE AVATAR"}</b><span>{isAnim?animClip:"Vista previa sobre R15"}</span></div>
     <div className={previewClass}>
-     <div className="creator-avatar-placeholder"><div className="creator-avatar-head"/><div className="creator-avatar-torso"/><div className="creator-avatar-leg left"/><div className="creator-avatar-leg right"/></div>
+     <R15AvatarPreview user={developer||{name:"Eskådin Player"}} size="xl"/>
      <div className="creator-preview-grid"/>
     </div>
     {isAnim&&<div className="object-studio-timeline"><span>0</span><input type="range" min="0" max="120" value={frame} onChange={e=>setFrame(e.target.value)}/><span>{frame}</span><button onClick={()=>setFrame(0)}>▶︎ Preview</button></div>}
