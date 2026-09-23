@@ -671,7 +671,7 @@ function aiEditScene(scene,prompt){
   const countMap={dos:2,2:2,tres:3,3:3,cuatro:4,4:4,cinco:5,5:5,una:1,un:1};
   if(countMatch){const n=countMap[text.match(/(?:dos|2|tres|3|cuatro|4|cinco|5|una|un)/)?.[0]]||1;const base=specs[0];if(base){specs.length=0;for(let i=0;i<n;i++)specs.push([base[0],base[1]+" "+(i+1)])}}
   specs.forEach(([type,name],i)=>{
-   const item={id:"ai-add-"+Date.now()+"-"+i,type,name,x:(Number(source?.x)||0)+i*2,y:type==="wall"?1:.5,z:(Number(source?.z)||0),rx:0,ry:0,rz:0,s:1,color:wantedColor||null,roughness:.55,metalness:.2};
+   const item={id:"ai-add-"+Date.now()+"-"+i,type,name,x:(Number(walls[0]?.x)||0)+i*2,y:type==="wall"?1:.5,z:(Number(walls[0]?.z)||0),rx:0,ry:0,rz:0,s:1,color:wantedColor||null,roughness:.55,metalness:.2};
    next.push(item);
   });
   if(specs.length)return {scene:next,message:"He añadido únicamente los objetos que nombraste. La IA ya no genera un mapa entero para una orden simple."};
