@@ -1280,3 +1280,74 @@ body:has(.editor-page) .editor-page{
 .runtime-camera-switcher button{border:0;background:transparent;color:#dce3ef;font:700 11px/1 system-ui;padding:9px 11px;border-radius:10px;cursor:pointer}
 .runtime-camera-switcher button.active{background:#fff;color:#111827}
 @media(max-width:700px){.runtime-camera-switcher{top:10px;gap:2px}.runtime-camera-switcher button{padding:8px 9px;font-size:10px}}
+
+/* Eskådin player shell, Roblox-inspired mobile-first redesign */
+:root{--rbx-bg:#0b0d10;--rbx-panel:#17191d;--rbx-panel2:#202328;--rbx-line:#30343a;--rbx-text:#f5f5f5;--rbx-muted:#a9adb4;--rbx-green:#00b06f}
+.app-shell{background:var(--rbx-bg);color:var(--rbx-text)}
+.nav{height:64px;background:#111317;border-bottom:1px solid var(--rbx-line);padding:0 18px}
+.brand{font-size:19px;letter-spacing:-.03em}
+.nav-links{gap:6px}
+.nav-links a{padding:10px 12px;border-radius:9px;color:#c9ccd1;font-weight:700}
+.nav-links a:hover,.nav-links a.active{background:#24272c;color:#fff}
+.nav-actions .button{border-radius:9px;padding:9px 12px}
+.page{padding:34px 0 80px}
+.page-title{font-size:clamp(34px,5vw,58px);letter-spacing:-.045em}
+.games-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.game-card{border:1px solid #2b2f35;border-radius:10px;background:#17191d;box-shadow:none}
+.game-card:hover{transform:none;border-color:#4a4f57}
+.game-cover{height:190px;border-radius:0;background:#25282d!important}
+.game-info{padding:14px}
+.game-info h3{font-size:16px}
+.game-info p{color:#a9adb4}
+.button{border-radius:9px}
+.button-primary{background:#00b06f;color:#fff;border-color:#00b06f}
+.game-hero{gap:28px}
+.playbar{height:58px}
+.game-viewport{border-radius:10px;border-color:#2b2f35;background:#090b0e}
+.studio-ai-panel{border-radius:10px}
+@media(max-width:1050px){
+ .wrap{width:min(100% - 28px,900px)}
+ .games-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .game-hero{grid-template-columns:1fr}
+}
+@media(max-width:720px){
+ .wrap{width:calc(100% - 20px)}
+ .nav{position:fixed;left:0;right:0;bottom:0;top:auto;height:62px;padding:5px 8px;z-index:100;background:rgba(17,19,23,.96);backdrop-filter:blur(18px);border-top:1px solid #30343a;border-bottom:0}
+ .nav .brand,.nav-actions{display:none}
+ .nav-links{width:100%;justify-content:space-around;gap:2px}
+ .nav-links a{flex:1;text-align:center;padding:10px 4px;font-size:11px;border-radius:9px}
+ .app-shell{padding-bottom:62px}
+ .page{padding:22px 0 28px}
+ .page-head{align-items:flex-start;flex-direction:column;margin-bottom:20px;gap:10px}
+ .page-title{font-size:36px}
+ .games-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .game-cover{height:130px;padding:10px;font-size:12px}
+ .game-info{padding:10px}
+ .game-info h3{font-size:14px}
+ .game-info p,.game-info b{font-size:11px}
+ .game-hero{display:block}
+ .game-cover.big{height:230px}
+ .playbar{padding:0 2px;height:52px}
+ .game-viewport{height:calc(100vh - 125px);min-height:420px}
+}
+@media(max-width:420px){
+ .games-grid{grid-template-columns:1fr 1fr}
+ .game-cover{height:112px}
+ .page-title{font-size:31px}
+}
+
+/* Touch-friendly runtime HUD */
+.runtime-top-actions{display:flex;gap:7px}
+.runtime-chat-button,.runtime-menu-button{width:42px;height:42px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(17,20,25,.78);color:#fff;backdrop-filter:blur(16px)}
+.runtime-menu-button .runtime-logo-mark{font-weight:950}
+.runtime-pause-menu{top:64px!important;right:12px!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:12px!important;background:rgba(17,20,25,.94)!important;backdrop-filter:blur(20px)}
+.runtime-chat-panel{border-radius:12px!important;background:rgba(17,20,25,.94)!important;border-color:rgba(255,255,255,.14)!important}
+@media(max-width:700px){
+ .runtime-camera-switcher{top:58px}
+ .runtime-top-actions{top:10px!important;right:10px!important}
+ .touch-stick{width:132px;height:132px}
+ .touch-jump{width:76px;height:76px}
+}
+@media(min-width:701px){
+ .touch-look-zone{display:none}
+}
