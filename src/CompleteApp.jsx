@@ -397,7 +397,7 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,wireframe=false
    orbit.target.set(0,0,0);
    orbit.minDistance=2;
    orbit.maxDistance=40;
-   host.__eskadinZoom=(direction)=>{if(direction>0)orbit.dollyIn(1.2);else orbit.dollyOut(1.2);orbit.update()};
+   host.__eskadinZoom=(direction)=>{if(direction>0)orbit.dollyIn(1.08);else orbit.dollyOut(1.08);orbit.update()};
    const transform=new TransformControls(camera,renderer.domElement); transformRef.current=transform;
    transform.setSize(1.05);
    scene3.add(transform.getHelper());
