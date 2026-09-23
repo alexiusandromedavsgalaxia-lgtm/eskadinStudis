@@ -3,6 +3,8 @@ import {Link,NavLink,Route,Routes,useLocation,useNavigate,useParams} from "react
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {TransformControls} from "three/addons/controls/TransformControls.js";
+import {Octree} from "three/addons/math/Octree.js";
+import {Capsule} from "three/addons/math/Capsule.js";
 
 const LANG={es:"ES",en:"EN",sv:"SV",de:"DE",fr:"FR"};
 const TXT={
@@ -150,29 +152,17 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const[chatOpen,setChatOpen]=useState(false);
  const[chatText,setChatText]=useState("");
  const[chatMessages,setChatMessages]=useState(()=>read(`eskadin-experience-chat-${game?.id||"unknown"}`,[]));
- const hostRef=useRef(null);
- const runtimeRef=useRef(null);
- const stickRef=useRef(null);
- const knobRef=useRef(null);
- const keysRef=useRef({});
- const touchRef=useRef({x:0,z:0,active:false,id:null});
- const lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
- const jumpRef=useRef(false);
- const pausedRef=useRef(false);
+ const hostRef=useRef(null),runtimeRef=useRef(null),stickRef=useRef(null),knobRef=useRef(null);
+ const keysRef=useRef({}),touchRef=useRef({x:0,z:0,active:false,id:null}),lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
+ const jumpRef=useRef(false),pausedRef=useRef(false);
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
   const runtime=runtimeRef.current;
-  const scene3=new THREE.Scene();
-  scene3.background=new THREE.Color(0x101722);
-  scene3.fog=new THREE.Fog(0x101722,18,70);
+  const scene3=new THREE.Scene();scene3.background=new THREE.Color(0x101722);scene3.fog=new THREE.Fog(0x101722,18,70);
   const camera=new THREE.PerspectiveCamera(70,1,.05,120);
   const renderer=new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
-  renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  renderer.domElement.style.cssText="width:100%;height:100%;display:block;touch-action:none";
-  host.replaceChildren(renderer.domElement);
-
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.domElement.style.cssText="width:100%;height:100%;display:block;touch-action:none";host.replaceChildren(renderer.domElement);
   scene3.add(new THREE.HemisphereLight(0xd9ecff,0x17202e,1.8));
   const sun=new THREE.DirectionalLight(0xffffff,2.5);sun.position.set(8,14,6);sun.castShadow=true;scene3.add(sun);
 
@@ -183,223 +173,85 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   const source=rawScene.filter(o=>o&&typeof o==="object"&&typeof o.type==="string");
   const world=[];
   source.forEach(o=>{const m=meshFor(o);m.userData.runtimeType=o.type;scene3.add(m);world.push(m)});
-  // The Studio viewport has a ground plane exactly at Y=0. Keep the gameplay floor on the same coordinate.
-  const runtimeGround=new THREE.Mesh(
-   new THREE.BoxGeometry(36,.2,36),
-   new THREE.MeshStandardMaterial({color:0x273242,roughness:.9})
-  );
-  runtimeGround.position.y=-.1;
-  runtimeGround.receiveShadow=true;
-  runtimeGround.userData.runtimeType="runtime-ground";
-  scene3.add(runtimeGround);
-  world.push(runtimeGround);
+  const runtimeGround=new THREE.Mesh(new THREE.BoxGeometry(36,.2,36),new THREE.MeshStandardMaterial({color:0x273242,roughness:.9}));
+  runtimeGround.position.y=-.1;runtimeGround.receiveShadow=true;runtimeGround.userData.runtimeType="runtime-ground";scene3.add(runtimeGround);world.push(runtimeGround);
   if(!source.length){
-   for(let i=0;i<8;i++){
-    const box=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshStandardMaterial({color:0x53657d,roughness:.7}));
-    box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box);
-   }
+   for(let i=0;i<8;i++){const box=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshStandardMaterial({color:0x53657d,roughness:.7}));box.position.set((i%4)*4-6,1,Math.floor(i/4)*-4-5);box.castShadow=true;box.receiveShadow=true;scene3.add(box);world.push(box)}
   }
-  const playerRadius=.32;
-  const playerHeight=1.9;
-  const stepHeight=.32;
-  const colliders=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
-  const colliderBoxes=colliders.flatMap(m=>{const parts=m.userData.colliderParts||[m];return parts.map(part=>{const box=new THREE.Box3().setFromObject(part);return {mesh:part,box}})});
-  let floorY=0;
-  for(const c of colliderBoxes){
-   const type=c.mesh.userData.runtimeType;
-   if(type==="floor"||type==="plane"||type==="runtime-ground"){
-    floorY=Math.max(floorY,c.box.max.y);
-   }
-  }
-  const fallbackFloor=source.length?0:0;
 
-  const player=createEskadinR15Avatar(read("eskadin-user",{})||{});
-  player.position.set(0,floorY,4);
-  player.scale.setScalar(.72);
-  scene3.add(player);
+  // Use Three.js's capsule/Octree character collision instead of the old box-only resolver.
+  // The capsule's bottom is at the player's feet, so the visible R15 model and collider share Y=0.
+  const collisionMeshes=world.filter(m=>!["light","camera","spawn","sound","text"].includes(m.userData.runtimeType));
+  const collisionRoot=new THREE.Group();collisionMeshes.forEach(m=>collisionRoot.add(m));collisionRoot.updateMatrixWorld(true);
+  const worldOctree=new Octree().fromGraphNode(collisionRoot);
+  const radius=.32, capsuleHeight=1.26;
+  const playerCollider=new Capsule(new THREE.Vector3(0,radius,4),new THREE.Vector3(0,radius+capsuleHeight,4),radius);
+  const velocity=new THREE.Vector3(),direction=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
+  let playerOnFloor=false;
+  const player=createEskadinR15Avatar(read("eskadin-user",{})||{});player.scale.setScalar(.72);scene3.add(player);
+  const syncPlayer=()=>{player.position.set(playerCollider.start.x,playerCollider.start.y-radius,playerCollider.start.z)};
+  syncPlayer();
 
-  const velocity=new THREE.Vector3();
-  const playerBox=new THREE.Box3();
-  const testBox=new THREE.Box3();
-  const horizontalCollides=(x,z,y)=>{
-   const halfHeight=playerHeight*.5;
-   testBox.min.set(x-playerRadius,y,testBox.min.z);
-   testBox.max.set(x+playerRadius,y+playerHeight,testBox.max.z);
-   for(const c of colliderBoxes){
-    const b=c.box;
-    if(b.max.y<=y+.02||b.min.y>=y+playerHeight-.02)continue;
-    const closestX=Math.max(b.min.x,Math.min(x,b.max.x));
-    const closestZ=Math.max(b.min.z,Math.min(z,b.max.z));
-    const dx=x-closestX,dz=z-closestZ;
-    if(dx*dx+dz*dz<playerRadius*playerRadius)return true;
+  const playerCollisions=()=>{
+   const result=worldOctree.capsuleIntersect(playerCollider);playerOnFloor=false;
+   if(result){
+    playerOnFloor=result.normal.y>=.15;
+    if(!playerOnFloor)velocity.addScaledVector(result.normal,-result.normal.dot(velocity));
+    if(result.depth>1e-8)playerCollider.translate(result.normal.multiplyScalar(result.depth));
    }
-   return false;
   };
-  const resolveHorizontal=(nextX,nextZ)=>{
-   let x=player.position.x,z=player.position.z;
-   let stepped=false;
-   const baseY=player.position.y;
-   if(!horizontalCollides(nextX,z,baseY))x=nextX;
-   else if(velocity.y<=.05&&
-           !horizontalCollides(nextX,z,baseY+stepHeight)){
-    x=nextX;
-    player.position.y=baseY+stepHeight;
-    stepped=true;
-   }
-   if(!horizontalCollides(x,nextZ,player.position.y))z=nextZ;
-   else if(!stepped&&velocity.y<=.05&&
-           !horizontalCollides(x,nextZ,baseY+stepHeight)){
-    z=nextZ;
-    player.position.y=baseY+stepHeight;
-   }
-   return {x,z};
+  const updatePlayer=(dt)=>{
+   if(!playerOnFloor)velocity.y-=22*dt;
+   else if(velocity.y<0)velocity.y=0;
+   const delta=velocity.clone().multiplyScalar(dt);playerCollider.translate(delta);playerCollisions();
+   if(playerOnFloor&&velocity.y<0)velocity.y=0;
+   syncPlayer();
   };
-  const forward=new THREE.Vector3(),right=new THREE.Vector3(),move=new THREE.Vector3();
+
   let yaw=Math.PI,pitch=-.12,last=performance.now(),raf=0;
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
-  const keyup=e=>{keysRef.current[e.code]=false};
-  window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
-
+  const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
   const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)}};
-  const pointerMove=e=>{
-   if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
-   const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
-   lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
-   yaw-=dx*.004;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.003));
-  };
+  const pointerMove=e=>{if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;yaw-=dx*.004;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.003))};
   const pointerUp=e=>{if(e.pointerType==="mouse")lookRef.current.active=false};
-  renderer.domElement.addEventListener("pointerdown",pointerDown);
-  renderer.domElement.addEventListener("pointermove",pointerMove);
-  renderer.domElement.addEventListener("pointerup",pointerUp);
-  renderer.domElement.addEventListener("pointercancel",pointerUp);
+  renderer.domElement.addEventListener("pointerdown",pointerDown);renderer.domElement.addEventListener("pointermove",pointerMove);renderer.domElement.addEventListener("pointerup",pointerUp);renderer.domElement.addEventListener("pointercancel",pointerUp);
 
-  const updateStick=e=>{
-   const base=stickRef.current;if(!base)return;
-   const r=base.getBoundingClientRect();
-   const radius=Math.min(r.width,r.height)*.5;
-   const max=radius*.62;
-   const dx=e.clientX-(r.left+r.width*.5),dy=e.clientY-(r.top+r.height*.5);
-   const len=Math.hypot(dx,dy),scale=len>max?max/len:1;
-   const x=dx*scale/max,z=dy*scale/max;
-   touchRef.current.x=Math.max(-1,Math.min(1,x));
-   touchRef.current.z=Math.max(-1,Math.min(1,z));
-   if(knobRef.current)knobRef.current.style.transform=`translate3d(${dx*scale}px,${dy*scale}px,0)`;
-  };
-  const resetStick=()=>{
-   touchRef.current.x=0;touchRef.current.z=0;touchRef.current.active=false;touchRef.current.id=null;
-   if(knobRef.current)knobRef.current.style.transform="translate3d(0,0,0)";
-  };
-  const stickDown=e=>{
-   if(e.pointerType==="mouse")return;
-   e.preventDefault();touchRef.current.active=true;touchRef.current.id=e.pointerId;
-   stickRef.current?.setPointerCapture?.(e.pointerId);updateStick(e);
-  };
-  const stickMove=e=>{if(touchRef.current.active&&e.pointerId===touchRef.current.id){e.preventDefault();updateStick(e)}};
-  const stickUp=e=>{if(e.pointerId===touchRef.current.id)resetStick()};
-  stickRef.current?.addEventListener("pointerdown",stickDown);
-  stickRef.current?.addEventListener("pointermove",stickMove);
-  stickRef.current?.addEventListener("pointerup",stickUp);
-  stickRef.current?.addEventListener("pointercancel",stickUp);
-
+  const updateStick=e=>{const base=stickRef.current;if(!base)return;const r=base.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.5,max=radius*.62,dx=e.clientX-(r.left+r.width*.5),dy=e.clientY-(r.top+r.height*.5),len=Math.hypot(dx,dy),scale=len>max?max/len:1,x=dx*scale/max,z=dy*scale/max;touchRef.current.x=Math.max(-1,Math.min(1,x));touchRef.current.z=Math.max(-1,Math.min(1,z));if(knobRef.current)knobRef.current.style.transform=`translate3d(${dx*scale}px,${dy*scale}px,0)`};
+  const resetStick=()=>{touchRef.current.x=0;touchRef.current.z=0;touchRef.current.active=false;touchRef.current.id=null;if(knobRef.current)knobRef.current.style.transform="translate3d(0,0,0)"};
+  const stickDown=e=>{if(e.pointerType==="mouse")return;e.preventDefault();touchRef.current.active=true;touchRef.current.id=e.pointerId;stickRef.current?.setPointerCapture?.(e.pointerId);updateStick(e)};
+  const stickMove=e=>{if(touchRef.current.active&&e.pointerId===touchRef.current.id){e.preventDefault();updateStick(e)}};const stickUp=e=>{if(e.pointerId===touchRef.current.id)resetStick()};
+  stickRef.current?.addEventListener("pointerdown",stickDown);stickRef.current?.addEventListener("pointermove",stickMove);stickRef.current?.addEventListener("pointerup",stickUp);stickRef.current?.addEventListener("pointercancel",stickUp);
   const lookZone=runtime?.querySelector("[data-look]");
-  const lookDown=e=>{
-   if(e.pointerType==="mouse")return;
-   e.preventDefault();lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};
-   lookZone?.setPointerCapture?.(e.pointerId);
-  };
-  const lookMove=e=>{
-   if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
-   e.preventDefault();
-   const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
-   lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
-   yaw-=dx*.006;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.004));
-  };
+  const lookDown=e=>{if(e.pointerType==="mouse")return;e.preventDefault();lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};lookZone?.setPointerCapture?.(e.pointerId)};
+  const lookMove=e=>{if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;e.preventDefault();const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;yaw-=dx*.006;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.004))};
   const lookUp=e=>{if(e.pointerId===lookRef.current.id)lookRef.current.active=false};
-  lookZone?.addEventListener("pointerdown",lookDown);
-  lookZone?.addEventListener("pointermove",lookMove);
-  lookZone?.addEventListener("pointerup",lookUp);
-  lookZone?.addEventListener("pointercancel",lookUp);
-
-  const onJump=e=>{e.preventDefault();jumpRef.current=true};
-  const jumpButton=runtime?.querySelector("[data-jump]");
-  jumpButton?.addEventListener("pointerdown",onJump);
-
+  lookZone?.addEventListener("pointerdown",lookDown);lookZone?.addEventListener("pointermove",lookMove);lookZone?.addEventListener("pointerup",lookUp);lookZone?.addEventListener("pointercancel",lookUp);
+  const onJump=e=>{e.preventDefault();jumpRef.current=true};const jumpButton=runtime?.querySelector("[data-jump]");jumpButton?.addEventListener("pointerdown",onJump);
   const resize=()=>{const w=Math.max(320,host.clientWidth),h=Math.max(320,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
   const ro=new ResizeObserver(resize);ro.observe(host);resize();
 
   const animate=now=>{
-   raf=requestAnimationFrame(animate);
-   const dt=Math.min(.033,(now-last)/1000);last=now;
+   raf=requestAnimationFrame(animate);const dt=Math.min(.05,(now-last)/1000);last=now;
    if(pausedRef.current){renderer.render(scene3,camera);return}
-   const k=keysRef.current;
-   const mx=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+touchRef.current.x));
-   const mz=Math.max(-1,Math.min(1,(k.KeyS?1:0)-(k.KeyW?1:0)+touchRef.current.z));
+   const k=keysRef.current,mx=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+touchRef.current.x)),mz=Math.max(-1,Math.min(1,(k.KeyS?1:0)-(k.KeyW?1:0)+touchRef.current.z));
    move.set(mx,0,mz);if(move.lengthSq()>1)move.normalize();
-   forward.set(Math.sin(yaw),0,Math.cos(yaw));right.set(Math.cos(yaw),0,-Math.sin(yaw));
-   const dir=new THREE.Vector3().addScaledVector(right,move.x).addScaledVector(forward,move.z);
-   const speed=k.ShiftLeft||k.ShiftRight?6.5:4.2;
-   const nextX=player.position.x+dir.x*speed*dt;
-   const nextZ=player.position.z+dir.z*speed*dt;
-   const resolved=resolveHorizontal(nextX,nextZ);
-   player.position.x=resolved.x;player.position.z=resolved.z;
-
-   velocity.y-=22*dt;
-   const previousY=player.position.y;
-   player.position.y+=velocity.y*dt;
-
-   let supportY=floorY;
-   const feet=player.position.y;
-   for(const c of colliderBoxes){
-    const b=c.box;
-    const type=c.mesh.userData.runtimeType;
-    if(type==="light"||type==="camera"||type==="spawn"||type==="sound"||type==="text")continue;
-    const insideX=player.position.x>=b.min.x-playerRadius&&player.position.x<=b.max.x+playerRadius;
-    const insideZ=player.position.z>=b.min.z-playerRadius&&player.position.z<=b.max.z+playerRadius;
-    if(insideX&&insideZ&&previousY>=b.max.y-playerHeight-.08&&feet<=b.max.y+.15){
-     supportY=Math.max(supportY,b.max.y);
-    }
-   }
-   const grounded=player.position.y<=supportY+.015&&velocity.y<=0;
-   if(grounded){player.position.y=supportY;velocity.y=0}
-   if((k.Space||k.KeyZ||jumpRef.current)&&grounded){velocity.y=7.2;jumpRef.current=false}
-   player.userData.animate?.(now/1000,move.lengthSq()>0.02,grounded);
-   player.rotation.y=yaw;
-   camera.position.set(player.position.x,player.position.y+1.52,player.position.z+0.08);
-   camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
+   forward.set(Math.sin(yaw),0,Math.cos(yaw));right.set(Math.cos(yaw),0,-Math.sin(yaw));direction.set(0,0,0).addScaledVector(right,move.x).addScaledVector(forward,move.z);
+   const speed=k.ShiftLeft||k.ShiftRight?6.5:4.2;velocity.x=direction.x*speed;velocity.z=direction.z*speed;
+   if((k.Space||k.KeyZ||jumpRef.current)&&playerOnFloor){velocity.y=7.2;jumpRef.current=false}
+   const substeps=5,stepDt=dt/substeps;for(let i=0;i<substeps;i++)updatePlayer(stepDt);
+   if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
+   player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
+   camera.position.set(playerCollider.end.x,playerCollider.end.y,playerCollider.end.z);camera.rotation.order="YXZ";camera.rotation.y=yaw;camera.rotation.x=pitch;
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
-  return()=>{
-   cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);
-   renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);
-   stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);
-   lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);
-   jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});
-  };
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[]);
- const[menuOpen,setMenuOpen]=useState(false);
- const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};
- const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
- return <div ref={runtimeRef} className="game-runtime">
-  <div ref={hostRef} className="game-runtime-canvas"/>
-  <div className="touch-look-zone" data-look aria-hidden="true"/>
-  <div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div>
-  <button type="button" className="touch-jump" data-jump>JUMP</button>
-  <button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>{setChatOpen(v=>!v);setMenuOpen(false)}}>💬</button>
-  {chatOpen&&<div className="runtime-chat-panel">
-   <div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div>
-   <div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div>
-   <form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}>
-    <input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/>
-    <button type="submit">➤</button>
-   </form>
-  </div>}
-  <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button>
-  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}>
-   <button type="button" onClick={continueGame}>{t.continueGame}</button>
-   <button type="button" onClick={onRestart}>{t.restart}</button>
-   <button type="button" onClick={onExit}>{t.exit}</button>
-  </div>}
+ const[menuOpen,setMenuOpen]=useState(false);const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
+ return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>{setChatOpen(v=>!v);setMenuOpen(false)}}>💬</button>
+ {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
+ <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button>
+ {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
  </div>
 }
 function Play(){
