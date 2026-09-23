@@ -60,7 +60,8 @@ function R15AvatarPreview({user,size="md",customItem}){
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b0f16);
   const camera=new THREE.PerspectiveCamera(28,1,.1,100);camera.position.set(4.4,2.8,7.4);camera.lookAt(0,1.45,0);
   const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
-  host.replaceChildren(renderer.domElement);renderer.domElement.style.width="100%";renderer.domElement.style.height="100%";renderer.domElement.style.touchAction="none";\n  const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.09;orbit.enablePan=false;orbit.enableZoom=true;orbit.zoomSpeed=.65;orbit.minDistance=4.2;orbit.maxDistance=11;orbit.target.set(0,1.45,0);orbit.update();
+  host.replaceChildren(renderer.domElement);renderer.domElement.style.width="100%";renderer.domElement.style.height="100%";renderer.domElement.style.touchAction="none";
+  const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.09;orbit.enablePan=false;orbit.enableZoom=true;orbit.zoomSpeed=.65;orbit.minDistance=4.2;orbit.maxDistance=11;orbit.target.set(0,1.45,0);orbit.update();
   scene.add(new THREE.HemisphereLight(0xffffff,0x273044,2.15));
   const key=new THREE.DirectionalLight(0xffffff,2.8);key.position.set(3,7,5);key.castShadow=true;scene.add(key);
   const fill=new THREE.DirectionalLight(0x7aa7ff,1.0);fill.position.set(-4,3,-2);scene.add(fill);
@@ -276,7 +277,12 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    const substeps=5,stepDt=dt/substeps;for(let i=0;i<substeps;i++)updatePlayer(stepDt);
    if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
-   const cameraTargetY=playerCollider.start.y+1.05;\n   const cameraDistance=3.6,cameraHeight=1.85;\n   const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance;\n   const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance;\n   camera.position.set(camX,cameraTargetY+cameraHeight-1.05,camZ);\n   camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
+   const cameraTargetY=playerCollider.start.y+1.05;
+   const cameraDistance=3.6,cameraHeight=1.85;
+   const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance;
+   const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance;
+   camera.position.set(camX,cameraTargetY+cameraHeight-1.05,camZ);
+   camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
@@ -286,7 +292,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  <button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button>
- {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
+ <span data-runtime-menu-anchor="true" aria-hidden="true"></span>{menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
  </div>
 }
 function Play(){
