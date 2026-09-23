@@ -149,7 +149,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   const sun=new THREE.DirectionalLight(0xffffff,2.5);sun.position.set(8,14,6);sun.castShadow=true;scene3.add(sun);
 
   const project=read("eskadin-project",null);
-  const source=Array.isArray(project?.scene)&&project.scene.length?project.scene:[];
+  const source=Array.isArray(project?.scene)?project.scene.filter(o=>o&&typeof o==="object"&&typeof o.type==="string"):[];
   const world=[];
   source.forEach(o=>{const m=meshFor(o);m.userData.runtimeType=o.type;scene3.add(m);world.push(m)});
   // The Studio viewport has a ground plane exactly at Y=0. Keep the gameplay floor on the same coordinate.
@@ -182,7 +182,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   }
   const fallbackFloor=source.length?0:0;
 
-  const player=createEskadinR15Avatar(read("eskadin-user",{}));
+  const player=createEskadinR15Avatar(read("eskadin-user",{})||{});
   player.position.set(0,floorY,4);
   player.scale.setScalar(.72);
   scene3.add(player);
@@ -427,9 +427,9 @@ function meshFor(o){
   root=new THREE.Mesh(geometry,material);
   if(o.type==="floor")root.rotation.x=-Math.PI/2;
  }
- root.position.set(o.x,o.y,o.z);
- root.rotation.set(THREE.MathUtils.degToRad(o.rx),THREE.MathUtils.degToRad(o.ry),THREE.MathUtils.degToRad(o.rz));
- root.scale.setScalar(o.s);
+ root.position.set(Number.isFinite(Number(o.x))?Number(o.x):0,Number.isFinite(Number(o.y))?Number(o.y):0,Number.isFinite(Number(o.z))?Number(o.z):0);
+ root.rotation.set(THREE.MathUtils.degToRad(Number.isFinite(Number(o.rx))?Number(o.rx):0),THREE.MathUtils.degToRad(Number.isFinite(Number(o.ry))?Number(o.ry):0),THREE.MathUtils.degToRad(Number.isFinite(Number(o.rz))?Number(o.rz):0));
+ root.scale.setScalar(THREE.MathUtils.clamp(Number.isFinite(Number(o.s))?Number(o.s):1,.05,10));
  root.userData.objectId=o.id;
  root.userData.runtimeType=o.type;
  root.userData.colliderParts=(o.type==="stairs"||o.type==="fence")?[]:null;
