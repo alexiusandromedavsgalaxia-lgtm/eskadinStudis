@@ -568,6 +568,98 @@ function generateSceneFromPrompt(prompt){
  return out;
 }
 
+function aiEditScene(scene,prompt){
+ const text=String(prompt||"").toLowerCase().trim();
+ const next=JSON.parse(JSON.stringify(scene));
+ const colorMap={
+  rojo:"#ef4444",roja:"#ef4444",red:"#ef4444",
+  azul:"#3b82f6",azul:""#3b82f6",blue:"#3b82f6",
+  verde:"#22c55e",green:"#22c55e",
+  amarillo:"#facc15",amarilla:"#facc15",yellow:"#facc15",
+  naranja:"#f97316",orange:"#f97316",
+  rosa:"#ec4899",pink:"#ec4899",
+  morado:"#a855f7",violeta:"#8b5cf6",purple:"#a855f7",
+  blanco:"#f8fafc",blanca:"#f8fafc",white:"#f8fafc",
+  negro:"#111827",negra:"#111827",black:"#111827",
+  gris:"#64748b",gray:"#64748b",marron:"#8b5e3c",brown:"#8b5e3c",
+  cian:"#06b6d4",turquesa:"#14b8a6",dorado:"#f59e0b"
+ };
+ const wantedColor=Object.entries(colorMap).find(([k])=>text.includes(k))?.[1]||null;
+ const targetWords=
+  text.includes("casa")||text.includes("casas")?["casa","suelo casa","tejado","puerta","ventana"]:
+  text.includes("edificio")||text.includes("edificios")||text.includes("ciudad")?["edificio","ventanas","azotea"]:
+  text.includes("árbol")||text.includes("arbol")||text.includes("bosque")?["árbol","pino","palmera"]:
+  text.includes("pared")?["pared","wall"]:
+  text.includes("suelo")||text.includes("terreno")||text.includes("piso")?["suelo","terreno","floor","campo"]:
+  text.includes("carretera")||text.includes("camino")?["carretera","camino","road","sendero"]:
+  text.includes("luz")||text.includes("luces")?["luz","farola","lamp"]:
+  text.includes("cámara")||text.includes("camara")?["cámara","camera"]:
+  null;
+ const matches=o=>{
+  if(text.includes("seleccionado")||text.includes("seleccionada")) return o.id===next.find(x=>x.id===next._selected)?.id;
+  if(!targetWords)return true;
+  const hay=(String(o.name)+" "+String(o.type)).toLowerCase();
+  return targetWords.some(w=>hay.includes(w));
+ };
+ let changed=false;
+ if(wantedColor){
+  next.forEach(o=>{if(matches(o)){o.color=wantedColor;changed=true}});
+ }
+ if(/más grande|mas grande|agranda|agrandar|bigger|larger/.test(text)){
+  next.forEach(o=>{if(matches(o)){o.s=Math.min(10,(Number(o.s)||1)*1.35);changed=true}});
+ }
+ if(/más pequeño|mas pequeño|encoge|reduc|smaller/.test(text)){
+  next.forEach(o=>{if(matches(o)){o.s=Math.max(.05,(Number(o.s)||1)*.75);changed=true}});
+ }
+ if(/metal|metálic|metallic/.test(text)){
+  next.forEach(o=>{if(matches(o)){o.metalness=.9;o.roughness=.25;changed=true}});
+ }
+ if(/mate|más rugoso|mas rugoso|rough/.test(text)){
+  next.forEach(o=>{if(matches(o)){o.roughness=.85;changed=true}});
+ }
+ if(/brillante|glossy|pulido/.test(text)){
+  next.forEach(o=>{if(matches(o)){o.roughness=.12;changed=true}});
+ }
+ if(/borra|borrar|elimina|eliminar|quita|quitar|delete|remove/.test(text)){
+  const removable=next.filter(o=>{
+   const hay=(String(o.name)+" "+String(o.type)).toLowerCase();
+   return targetWords?targetWords.some(w=>hay.includes(w)):false;
+  });
+  if(removable.length){return {scene:next.filter(o=>!removable.includes(o)),message:"He quitado los objetos que coinciden con la petición."}}
+ }
+ if(/mueve|mover|move/.test(text)){
+  const nums=text.match(/(?:a|to)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)\s*(?:,|y|and)\s*(-?\d+(?:[.,]\d+)?)/);
+  if(nums){
+   const [x,y,z]=nums.slice(1).map(v=>Number(v.replace(",",".")));
+   next.forEach(o=>{if(matches(o)){o.x=x;o.y=y;o.z=z;changed=true}});
+  }
+ }
+ if(/gira|girar|rota|rotar|rotate/.test(text)){
+  const deg=text.match(/(-?\d+(?:[.,]\d+)?)\s*(?:grados|degrees|°)/);
+  if(deg){const value=Number(deg[1].replace(",","."));next.forEach(o=>{if(matches(o)){o.ry=value;changed=true}})}
+ }
+ if(/noche|night|oscuro|dark/.test(text)){
+  next.push({id:"ai-light-"+Date.now(),type:"light",name:"Luz nocturna IA",x:0,y:8,z:0,rx:0,ry:0,rz:0,s:1,color:"#9db8ff",intensity:1.5,roughness:.55,metalness:.2});
+  changed=true;
+ }
+ if(/cámara|camara|camera/.test(text)&&!/cambia.*cámara|cambia.*camara/.test(text)){
+  next.push({id:"ai-camera-"+Date.now(),type:"camera",name:"Cámara IA",x:12,y:8,z:14,rx:0,ry:0,rz:0,s:.8,target:[0,1,0]});
+  changed=true;
+ }
+ if(/añade|anade|agrega|agregar|crea|crear|add|create/.test(text)){
+  const generated=generateSceneFromPrompt(text);
+  if(generated.length){next.push(...generated.map((o,i)=>({...o,id:"ai-add-"+Date.now()+"-"+i})));changed=true}
+ }
+ return {scene:next.filter(o=>o&&o.id!==undefined),message:changed?"He aplicado los cambios al entorno que ya estaba abierto.":"No encontré una acción clara. Prueba algo como «cambia las casas a rojo», «añade árboles» o «haz los edificios metálicos»."};
+}
+
+function describeScene(scene){
+ const counts={};
+ scene.forEach(o=>{const key=o.type||"objeto";counts[key]=(counts[key]||0)+1});
+ const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>v+" "+k).join(", ");
+ return scene.length?scene.length+" objetos en la escena. Principales: "+top+".":"La escena está vacía.";
+}
+
 function Editor(){useStudioFullscreenLock();
  const[lang,t]=useLang();const{setLang}=useContext(LangContext);
  const[sidebarOpen,setSidebarOpen]=useState(false);
@@ -589,6 +681,7 @@ function Editor(){useStudioFullscreenLock();
  const[future,setFuture]=useState([]);
  const[aiPrompt,setAiPrompt]=useState("");
  const[aiBusy,setAiBusy]=useState(false);
+ const[aiMessage,setAiMessage]=useState(()=>describeScene(scene));
  const[scripts,setScripts]=useState(()=>read("eskadin-scripts",[{id:"main",name:"Main.es",code:"when start\n  say \"Hola desde Eskådin\"\nend"}]));
  const[activeScript,setActiveScript]=useState("main");
  const saveScripts=next=>{setScripts(next);save("eskadin-scripts",next)};
@@ -599,7 +692,7 @@ function Editor(){useStudioFullscreenLock();
  const upd=(id,patch)=>{if(!historyLock.current)pushHistory(scene);setScene(s=>s.map(o=>o.id===id?{...o,...patch}:o))};
  const undo=()=>{if(!past.length)return;const previous=past[past.length-1];setFuture(h=>[JSON.parse(JSON.stringify(scene)),...h.slice(0,49)]);setPast(h=>h.slice(0,-1));setScene(previous);setSelected(previous[0]?.id||null)};
  const redo=()=>{if(!future.length)return;const next=future[0];setPast(h=>[...h.slice(-49),JSON.parse(JSON.stringify(scene))]);setFuture(h=>h.slice(1));setScene(next);setSelected(next[0]?.id||null)};
- const runAI=()=>{const prompt=aiPrompt.trim();if(!prompt)return;setAiBusy(true);setTimeout(()=>{const generated=generateSceneFromPrompt(prompt);const next=[...scene,...generated.map((o,i)=>({...o,id:Date.now()+i}))];pushHistory(scene);setScene(next);setSelected(next[next.length-1]?.id||null);setAiPrompt("");setAiBusy(false)},250)};
+ const runAI=()=>{const prompt=aiPrompt.trim();if(!prompt)return;setAiBusy(true);setTimeout(()=>{const result=aiEditScene(scene,prompt);if(JSON.stringify(result.scene)!==JSON.stringify(scene)){pushHistory(scene);setScene(result.scene);setSelected(result.scene.at(-1)?.id||selected)}setAiMessage(result.message+" "+describeScene(result.scene));setAiPrompt("");setAiBusy(false)},250)};
  const add=type=>{const id=Date.now();const defaults={wall:[0,1,0],cube:[0,.5,0],sphere:[0,.75,0],cylinder:[0,.75,0],cone:[0,.75,0],torus:[0,.75,0],capsule:[0,.7,0],plane:[0,0,0],floor:[0,0,0],fence:[0,.8,0],stairs:[0,0,0],light:[2,3,2],sound:[0,1,2],spawn:[-2,.6,0],camera:[3,2,4],text:[0,1,0]};const p=defaults[type]||[0,.5,0];const item={id,type,name:type.charAt(0).toUpperCase()+type.slice(1)+" "+(scene.length+1),x:p[0],y:p[1],z:p[2],rx:0,ry:0,rz:0,s:1,color:null,roughness:.55,metalness:.2};applyScene([...scene,item]);setSelected(id)};
  const saveScene=()=>{
   const id=projectId||"project-"+Date.now();
@@ -665,10 +758,10 @@ const groups=objectCatalog[lang]||objectCatalog.en;
     </div>
     <div className="studio-sidebar-section">{t.quickActions}</div>
     <div className="studio-sidebar-actions">
-     <button title="Deshacer (Ctrl+Z)" onClick={undo} disabled={!past.length}>↶ Deshacer</button><button title="Rehacer (Ctrl+Y)" onClick={redo} disabled={!future.length}>↷ Rehacer</button><button title="Deshacer (Ctrl+Z)" onClick={undo} disabled={!past.length}>↶ Deshacer</button><button title="Rehacer (Ctrl+Y)" onClick={redo} disabled={!future.length}>↷ Rehacer</button><button title={t.duplicate} onClick={dup}>＋ {t.duplicate}</button><button title={t.deleteObject} onClick={del}>⌫ {t.deleteObject}</button><button title={t.reset} onClick={reset}>↺ {t.reset}</button>
+     <button title="Deshacer (Ctrl+Z)" onClick={undo} disabled={!past.length}>↶ Deshacer</button><button title="Rehacer (Ctrl+Y)" onClick={redo} disabled={!future.length}>↷ Rehacer</button><button title={t.duplicate} onClick={dup}>＋ {t.duplicate}</button><button title={t.deleteObject} onClick={del}>⌫ {t.deleteObject}</button><button title={t.reset} onClick={reset}>↺ {t.reset}</button>
     </div>
     <div className="studio-panel-preview">{panel==="scripts"?<><strong>Programación</strong><div className="studio-script-tabs">{scripts.map(s=><button key={s.id} className={activeScript===s.id?"active":""} onClick={()=>setActiveScript(s.id)}>{s.name}</button>)}</div>{(()=>{const s=scripts.find(x=>x.id===activeScript)||scripts[0];return s?<><textarea className="studio-code-editor" value={s.code} onChange={e=>{const next=scripts.map(x=>x.id===s.id?{...x,code:e.target.value}:x);saveScripts(next)}} spellCheck="false"/><div className="studio-script-actions"><button onClick={()=>saveScripts(scripts)}>Guardar script</button><button onClick={()=>{const next=[...scripts,{id:"script-"+Date.now(),name:"Script "+(scripts.length+1)+".es",code:"when start\n  // escribe tu lógica aquí\nend"}];saveScripts(next);setActiveScript(next.at(-1).id)}}>＋ Script</button></div></>:null})()}</>:
-panel==="create"&&<><strong>{t.objects} · 500</strong><div className="studio-object-grid">{STUDIO_OBJECT_CATALOG.map(([type,label],i)=><button key={type+"-"+i} title={label} aria-label={label} onClick={()=>add(type)}>{label}</button>)}</div></>}{panel==="scene"&&<><strong>{t.hierarchy}</strong><div className="studio-scene-list">{scene.map(o=><button key={o.id} title={o.name} className={selected===o.id?"active":""} onClick={()=>setSelected(o.id)}>{o.name}</button>)}</div></>}</div><div className="studio-ai-panel"><div><b>✦ Eskådin IA</b><span>constructor de escenas</span></div><textarea value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder="ej. crea una casa con árboles y una carretera"/><button onClick={runAI} disabled={aiBusy}>{aiBusy?"Construyendo…":"Construir con IA"}</button></div><div className="studio-sidebar-spacer"/>
+panel==="create"&&<><strong>{t.objects} · 500</strong><div className="studio-object-grid">{STUDIO_OBJECT_CATALOG.map(([type,label],i)=><button key={type+"-"+i} title={label} aria-label={label} onClick={()=>add(type)}>{label}</button>)}</div></>}{panel==="scene"&&<><strong>{t.hierarchy}</strong><div className="studio-scene-list">{scene.map(o=><button key={o.id} title={o.name} className={selected===o.id?"active":""} onClick={()=>setSelected(o.id)}>{o.name}</button>)}</div></>}</div><div className="studio-ai-panel"><div><b>✦ Eskådin IA</b><span>entiende y edita el entorno actual</span></div><div className="studio-ai-context">{aiMessage}</div><textarea value={aiPrompt} onChange={e=>setAiPrompt(e.target.value)} placeholder="ej. cambia las casas a rojo y añade árboles"/><button onClick={runAI} disabled={aiBusy}>{aiBusy?"Aplicando…":"Aplicar al entorno"}</button><small>Puede añadir objetos, cambiar colores/materiales, mover, girar, escalar, borrar y crear cámaras/luces sobre la escena actual.</small></div><div className="studio-sidebar-spacer"/>
     <div className="studio-sidebar-actions bottom-actions">
      <button title={t.fullscreen} onClick={toggleFullscreen}>⛶ {t.fullscreen}</button><button title={t.save} onClick={saveScene}>✓ {saved?t.save:t.save}</button><Link title={t.publish} className="studio-publish" to="/publish">↗ {t.publish}</Link>
     </div>
@@ -678,7 +771,7 @@ panel==="create"&&<><strong>{t.objects} · 500</strong><div className="studio-ob
      <section className="editor-center">
       <div className="viewport-project"><strong>{currentName}</strong><span>● {t.local} · {scene.length} {t.objectsCount}</span></div>
       <div className="viewport-hud"><span>{t.viewport}</span><span>{t.orbit}</span></div>
-      <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} beginHistory={()=>{historyLock.current=true;pushHistory(scene)}} endHistory={()=>{historyLock.current=false}} beginHistory={()=>{historyLock.current=true;pushHistory(scene)}} endHistory={()=>{historyLock.current=false}} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
+      <ThreeViewport scene={scene} selected={selected} setSelected={setSelected} tool={tool} grid={grid} upd={upd} beginHistory={()=>{historyLock.current=true;pushHistory(scene)}} endHistory={()=>{historyLock.current=false}} wireframe={wireframe} showAxes={showAxes} snap={snap}/>
       <div className="viewport-badges"><span>{t.webgl}</span><span>{t.shadows}</span><span>{t.touch}</span><span>{wireframe?t.wire:t.solid}</span><span>{snap?t.snapOn:t.snapOff}</span></div>
      </section>
      <aside className="editor-dock right-dock">
