@@ -1,5 +1,6 @@
 export async function onRequestGet({ request, env }) {
   if (!env.DB) return Response.json({ error: "DB binding missing" }, { status: 503 });
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS user_projects (user_key TEXT PRIMARY KEY, projects TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')))").run();
   const key = request.headers.get("X-Eskadin-Key");
   if (!key) return Response.json({ error: "Missing key" }, { status: 400 });
   const row = await env.DB.prepare("SELECT projects FROM user_projects WHERE user_key = ?1").bind(key).first();
