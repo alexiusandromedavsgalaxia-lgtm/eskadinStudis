@@ -251,9 +251,57 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
   const wheel=e=>{e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
   renderer.domElement.addEventListener("wheel",wheel,{passive:false});
-  const lookDown=e=>{if(e.pointerType==="mouse"&&e.button!==0)return;if(e.pointerType==="touch"&&e.isPrimary===false)return;e.preventDefault();lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)};
-  const lookMove=e=>{if(e.pointerType==="touch"&&e.isPrimary===false)return;if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;e.preventDefault();const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.35,1.05)};
-  const lookUp=e=>{if(e.pointerId===lookRef.current.id)lookRef.current.active=false};
+  const touchPointsRef=useRef(new Map()),pinchDistanceRef=useRef(0);
+  const lookDown=e=>{
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    e.preventDefault();
+    if(e.pointerType==="touch"){
+      touchPointsRef.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(touchPointsRef.current.size>=2){
+        const pts=[...touchPointsRef.current.values()];
+        pinchDistanceRef.current=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+        lookRef.current.active=false;
+        return;
+      }
+    }
+    lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};
+    renderer.domElement.setPointerCapture?.(e.pointerId)
+  };
+  const lookMove=e=>{
+    if(e.pointerType==="touch"){
+      const points=touchPointsRef.current;
+      if(points.has(e.pointerId))points.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(points.size>=2){
+        const pts=[...points.values()];
+        const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+        if(pinchDistanceRef.current>0){
+          cameraZoomTarget-= (distance-pinchDistanceRef.current)*.018;
+          clampZoom();
+          cameraZoomRef.current=cameraZoomTarget;
+        }
+        pinchDistanceRef.current=distance;
+        lookRef.current.active=false;
+        return;
+      }
+    }
+    if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
+    e.preventDefault();
+    const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
+    lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
+    yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.35,1.05)
+  };
+  const lookUp=e=>{
+    if(e.pointerType==="touch"){
+      touchPointsRef.current.delete(e.pointerId);
+      if(touchPointsRef.current.size<2)pinchDistanceRef.current=0;
+      if(touchPointsRef.current.size===1){
+        const [id,p]=[...touchPointsRef.current.entries()][0];
+        lookRef.current={active:true,id,lastX:p.x,lastY:p.y};
+      }else lookRef.current.active=false;
+      return;
+    }
+    if(e.pointerId===lookRef.current.id)lookRef.current.active=false
+  };
   renderer.domElement.addEventListener("pointerdown",lookDown);renderer.domElement.addEventListener("pointermove",lookMove);renderer.domElement.addEventListener("pointerup",lookUp);renderer.domElement.addEventListener("pointercancel",lookUp);
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
