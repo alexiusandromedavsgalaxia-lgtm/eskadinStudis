@@ -61,7 +61,7 @@ function R15AvatarPreview({user,size="md",customItem}){
   const camera=new THREE.PerspectiveCamera(28,1,.1,100);camera.position.set(4.4,2.8,7.4);camera.lookAt(0,1.45,0);
   const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
   host.replaceChildren(renderer.domElement);renderer.domElement.style.width="100%";renderer.domElement.style.height="100%";renderer.domElement.style.touchAction="none";
-  const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.09;orbit.enablePan=false;orbit.enableZoom=true;orbit.zoomSpeed=.65;orbit.minDistance=4.2;orbit.maxDistance=11;orbit.target.set(0,1.45,0);orbit.update();
+  const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableRotate=false;orbit.enablePan=false;orbit.enableZoom=true;orbit.enableDamping=false;orbit.zoomSpeed=.65;orbit.minDistance=4.2;orbit.maxDistance=11;orbit.target.set(0,1.45,0);orbit.update();
   scene.add(new THREE.HemisphereLight(0xffffff,0x273044,2.15));
   const key=new THREE.DirectionalLight(0xffffff,2.8);key.position.set(3,7,5);key.castShadow=true;scene.add(key);
   const fill=new THREE.DirectionalLight(0x7aa7ff,1.0);fill.position.set(-4,3,-2);scene.add(fill);
@@ -187,8 +187,6 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const hostRef=useRef(null),runtimeRef=useRef(null),stickRef=useRef(null),knobRef=useRef(null);
  const keysRef=useRef({}),touchRef=useRef({x:0,z:0,active:false,id:null}),lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
  const jumpRef=useRef(false),pausedRef=useRef(false);
- const[cameraMode,setCameraMode]=useState("third");
- const cameraModeRef=useRef("third");
  const cameraZoomRef=useRef(4.2);
  useEffect(()=>{
   const host=hostRef.current;if(!host)return;
@@ -247,28 +245,20 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    syncPlayer();
   };
 
-  let yaw=Math.PI,pitch=-.12,last=performance.now(),raf=0;
-  let currentCameraDistance=3.8,cameraZoomTarget=cameraZoomRef.current,lastAppliedCameraMode="third";
+  const yaw=Math.PI,pitch=-.12;
+  let last=performance.now(),raf=0;
+  let currentCameraDistance=3.8,cameraZoomTarget=cameraZoomRef.current;
   const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
   const wheel=e=>{if(cameraModeRef.current==="first")return;e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
   renderer.domElement.addEventListener("wheel",wheel,{passive:false});
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
-  const pointerDown=e=>{if(e.pointerType==="mouse"){lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)}};
-  const pointerMove=e=>{if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;yaw-=dx*.004;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.003))};
-  const pointerUp=e=>{if(e.pointerType==="mouse")lookRef.current.active=false};
-  renderer.domElement.addEventListener("pointerdown",pointerDown);renderer.domElement.addEventListener("pointermove",pointerMove);renderer.domElement.addEventListener("pointerup",pointerUp);renderer.domElement.addEventListener("pointercancel",pointerUp);
 
   const updateStick=e=>{const base=stickRef.current;if(!base)return;const r=base.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.5,max=radius*.62,dx=e.clientX-(r.left+r.width*.5),dy=e.clientY-(r.top+r.height*.5),len=Math.hypot(dx,dy),scale=len>max?max/len:1,x=dx*scale/max,z=dy*scale/max;touchRef.current.x=Math.max(-1,Math.min(1,x));touchRef.current.z=Math.max(-1,Math.min(1,z));if(knobRef.current)knobRef.current.style.transform=`translate3d(${dx*scale}px,${dy*scale}px,0)`};
   const resetStick=()=>{touchRef.current.x=0;touchRef.current.z=0;touchRef.current.active=false;touchRef.current.id=null;if(knobRef.current)knobRef.current.style.transform="translate3d(0,0,0)"};
   const stickDown=e=>{if(e.pointerType==="mouse")return;e.preventDefault();touchRef.current.active=true;touchRef.current.id=e.pointerId;stickRef.current?.setPointerCapture?.(e.pointerId);updateStick(e)};
   const stickMove=e=>{if(touchRef.current.active&&e.pointerId===touchRef.current.id){e.preventDefault();updateStick(e)}};const stickUp=e=>{if(e.pointerId===touchRef.current.id)resetStick()};
   stickRef.current?.addEventListener("pointerdown",stickDown);stickRef.current?.addEventListener("pointermove",stickMove);stickRef.current?.addEventListener("pointerup",stickUp);stickRef.current?.addEventListener("pointercancel",stickUp);
-  const lookZone=runtime?.querySelector("[data-look]");
-  const lookDown=e=>{if(e.pointerType==="mouse")return;e.preventDefault();lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};lookZone?.setPointerCapture?.(e.pointerId)};
-  const lookMove=e=>{if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;e.preventDefault();const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;yaw-=dx*.006;pitch=Math.max(-1.2,Math.min(.65,pitch-dy*.004))};
-  const lookUp=e=>{if(e.pointerId===lookRef.current.id)lookRef.current.active=false};
-  lookZone?.addEventListener("pointerdown",lookDown);lookZone?.addEventListener("pointermove",lookMove);lookZone?.addEventListener("pointerup",lookUp);lookZone?.addEventListener("pointercancel",lookUp);
   const onJump=e=>{e.preventDefault();jumpRef.current=true};const jumpButton=runtime?.querySelector("[data-jump]");jumpButton?.addEventListener("pointerdown",onJump);
   const resize=()=>{const w=Math.max(320,host.clientWidth),h=Math.max(320,host.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()};
   const ro=new ResizeObserver(resize);ro.observe(host);resize();
@@ -284,46 +274,26 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    const substeps=5,stepDt=dt/substeps;for(let i=0;i<substeps;i++)updatePlayer(stepDt);
    if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
-   const mode=cameraModeRef.current;
-   if(mode!==lastAppliedCameraMode){
-    lastAppliedCameraMode=mode;
-    player.visible=mode!=="first";
-    cameraZoomTarget=mode==="first"?.8:mode==="shoulder"?2.2:mode==="third"?4.2:7;
-    cameraZoomRef.current=cameraZoomTarget;
-    currentCameraDistance=cameraZoomTarget;
-   }
    const cameraTargetY=playerCollider.start.y+1.18;
    cameraZoomTarget=cameraZoomRef.current;
    currentCameraDistance+=(cameraZoomTarget-currentCameraDistance)*Math.min(1,dt*12);
-   if(mode==="first"){
-    camera.position.set(playerCollider.start.x,playerCollider.start.y+1.52,playerCollider.start.z);
-    camera.rotation.order="YXZ";
-    camera.rotation.set(pitch,yaw+Math.PI,0);
-   }else{
-    const cameraDistance=Math.max(mode==="shoulder"?.95:1.5,currentCameraDistance);
-    const cameraHeight=mode==="shoulder"?1.15:mode==="free"?2.6:1.75;
-    const side=mode==="shoulder"?.78:0;
-    const lookAhead=mode==="free"?.8:.22;
-    const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance+Math.cos(yaw)*side;
-    const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance-Math.sin(yaw)*side;
-    camera.position.set(camX,cameraTargetY+cameraHeight-1.15,camZ);
-    camera.lookAt(playerCollider.start.x+Math.sin(yaw)*lookAhead,cameraTargetY,playerCollider.start.z+Math.cos(yaw)*lookAhead);
-   }
+   const cameraDistance=Math.max(1.5,currentCameraDistance);
+   const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance;
+   const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance;
+   camera.position.set(camX,cameraTargetY+.60,camZ);
+   camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
-  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("pointerdown",pointerDown);renderer.domElement.removeEventListener("pointermove",pointerMove);renderer.domElement.removeEventListener("pointerup",pointerUp);renderer.domElement.removeEventListener("pointercancel",pointerUp);renderer.domElement.removeEventListener("wheel",wheel);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);lookZone?.removeEventListener("pointerdown",lookDown);lookZone?.removeEventListener("pointermove",lookMove);lookZone?.removeEventListener("pointerup",lookUp);lookZone?.removeEventListener("pointercancel",lookUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("wheel",wheel);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[]);
  const[menuOpen,setMenuOpen]=useState(false);
- const setMode=mode=>{cameraModeRef.current=mode;setCameraMode(mode)};
  const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
  return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/>
- <div className="runtime-camera-switcher" role="toolbar" aria-label="Modo de cámara">
-  <button className={cameraMode==="first"?"active":""} onClick={()=>setMode("first")}>1ª</button>
-  <button className={cameraMode==="shoulder"?"active":""} onClick={()=>setMode("shoulder")}>2ª</button>
-  <button className={cameraMode==="third"?"active":""} onClick={()=>setMode("third")}>3ª</button>
-  <button className={cameraMode==="free"?"active":""} onClick={()=>setMode("free")}>LIBRE</button><button onClick={()=>{cameraZoomRef.current=Math.min(12,cameraZoomRef.current+.8)}} aria-label="Alejar cámara">−</button><button onClick={()=>{cameraZoomRef.current=Math.max(.65,cameraZoomRef.current-.8)}} aria-label="Acercar cámara">+</button>
- </div><div className="touch-look-zone" data-look aria-hidden="true"/><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
+ <div className="runtime-camera-switcher" role="toolbar" aria-label="Zoom de cámara">
+  <button onClick={()=>{cameraZoomRef.current=Math.min(12,cameraZoomRef.current+.8)}} aria-label="Alejar cámara">−</button>
+  <button onClick={()=>{cameraZoomRef.current=Math.max(1.5,cameraZoomRef.current-.8)}} aria-label="Acercar cámara">+</button>
+ </div><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
  </div>
@@ -430,8 +400,10 @@ function ThreeViewport({scene,selected,setSelected,tool,grid,upd,beginHistory,en
    renderer.domElement.style.display="block";
    renderer.domElement.style.touchAction="none";
    const orbit=new OrbitControls(camera,renderer.domElement);
-   orbit.enableDamping=true;
-   orbit.dampingFactor=.08;
+   orbit.enableRotate=false;
+   orbit.enablePan=false;
+   orbit.enableZoom=true;
+   orbit.enableDamping=false;
    orbit.target.set(0,0,0);
    orbit.minDistance=2;
    orbit.maxDistance=40;
@@ -689,6 +661,7 @@ function Editor(){useStudioFullscreenLock();
  const[lang,t]=useLang();const{setLang}=useContext(LangContext);
  const[sidebarOpen,setSidebarOpen]=useState(false);
  const navigate=useNavigate();
+ const[games,setGames]=useGames();
  const[projectId,setProjectId]=useState(()=>new URLSearchParams(window.location.search).get("project")||projectList()[0]?.id||null);
  const[projects,setProjects]=useState(()=>projectList());
  const[scene,setScene]=useState(()=>{const id=new URLSearchParams(window.location.search).get("project")||projectList()[0]?.id;return id?(getProject(id)?.scene||sceneSeed):sceneSeed});
@@ -725,6 +698,7 @@ function Editor(){useStudioFullscreenLock();
   const record={id,name:currentName.trim()||"Nuevo juego",description:getProject(id)?.description||"",scene,createdAt:getProject(id)?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),published:getProject(id)?.published||false};
   const next=[record,...existing.filter(p=>p.id!==id)];
   saveProjectList(next);save("eskadin-scene",scene);save("eskadin-project",record);
+  setGames(gs=>gs.map(g=>String(g.projectId)===String(id)?{...g,scene:JSON.parse(JSON.stringify(scene)),updatedAt:record.updatedAt}:g));
   setProjectId(id);setProjects(next);window.history.replaceState(null,"","/editor?project="+encodeURIComponent(id));
   setSaved(true);setTimeout(()=>setSaved(false),1000);
  };
@@ -814,7 +788,7 @@ panel==="create"&&<><strong>{t.objects} · 500</strong><div className="studio-ob
 
 function Developer(){const[,t]=useLang();return <main className="page"><div className="eyebrow">{t.developer}</div><h1 className="page-title">{t.yourStudio}</h1><div className="dashboard-grid"><Link to="/editor" className="dash"><b>🧱 {t.create}</b><span>{t.buildPreview}</span></Link><Link to="/projects" className="dash"><b>🗂 {t.projects}</b><span>{t.manageProjects}</span></Link><Link to="/publish" className="dash"><b>📤 {t.publish}</b><span>{t.releaseGame}</span></Link><Link to="/statistics" className="dash"><b>📊 {t.statisticsShort}</b><span>{t.visitsLikesSessions}</span></Link></div></main>}
 
-function Publish(){const[,t]=useLang();const[games,setGames]=useGames();const{developer}=useUser();const nav=useNavigate();const[name,setName]=useState("My new game");const[desc,setDesc]=useState("A new Eskådin Stüdis experience.");const[done,setDone]=useState(false);const blocked=blockedIdentity(name);const go=()=>{if(blocked)return;const current=read("eskadin-project",null);const projects=projectList();const active=current?.id?getProject(current.id):projects[0]||null;const publishedScene=Array.isArray(active?.scene)?JSON.parse(JSON.stringify(active.scene)):[];const gameRecord={id:Date.now(),projectId:active?.id||null,scene:publishedScene,title:name.trim()||"My new game",genre:"3D Experience",tag:"New",color:"violet",players:0,likes:0,author:developer?.name||"Eskådin Studio",description:desc,updatedAt:new Date().toISOString()};setGames(g=>[...g,gameRecord]);setDone(true)};if(!developer)return <main className="page narrow"><div className="form-card"><div className="eyebrow">{t.developer}</div><h1 className="page-title">{t.developerRequired}</h1><p className="muted">{t.developerRequiredText}</p><button className="button button-primary" onClick={()=>nav("/developer/register")}>{t.createDeveloper}</button></div></main>;return <main className="page narrow"><div className="eyebrow">{t.publish}</div><h1 className="page-title">{done?t.published:t.publish}</h1>{done?<div className="success-card"><b>✓ {t.publish}</b><p>{t.localCatalog}</p><Link className="button button-primary" to="/games">{t.explore}</Link></div>:<div className="form-card"><label>{t.name}<input value={name} onChange={e=>setName(e.target.value)}/></label>{blocked&&<p className="error">{t.reservedName}</p>}<label>{t.description}<textarea value={desc} onChange={e=>setDesc(e.target.value)}/></label><label>{t.settings}<select><option>{t.public}</option><option>{t.private}</option></select></label><button className="button button-primary" disabled={blocked} onClick={go}>{t.publish} · 0€</button><p className="muted">{t.earnedOnly}</p></div>}</main>}
+function Publish(){const[,t]=useLang();const[games,setGames]=useGames();const{developer}=useUser();const nav=useNavigate();const[name,setName]=useState("My new game");const[desc,setDesc]=useState("A new Eskådin Stüdis experience.");const[done,setDone]=useState(false);const blocked=blockedIdentity(name);const go=()=>{if(blocked)return;const current=read("eskadin-project",null);const projects=projectList();const active=current?.id?getProject(current.id):projects[0]||null;const publishedScene=Array.isArray(active?.scene)?JSON.parse(JSON.stringify(active.scene)):[];const gameRecord={id:Date.now(),projectId:active?.id||null,scene:publishedScene,title:name.trim()||"My new game",genre:"3D Experience",tag:"New",color:"violet",players:0,likes:0,author:developer?.name||"Eskådin Studio",description:desc,updatedAt:new Date().toISOString()};setGames(g=>[...g,gameRecord]);setDone(true)};if(!developer)return <main className="page narrow"><div className="form-card"><div className="eyebrow">{t.developer}</div><h1 className="page-title">{t.developerRequired}</h1><p className="muted">{t.developerRequiredText}</p><button className="button button-primary" onClick={()=>nav("/developer/register")}>{t.createDeveloper}</button></div></main>;return <main className="page narrow"><div className="eyebrow">{t.publish}</div><h1 className="page-title">{done?t.published:t.publish}</h1>{done?<div className="success-card"><b>✓ {t.publish}</b><p>{t.localCatalog}</p><Link className="button button-primary" to="/games">{t.explore}</Link></div>:<div className="form-card"><label>{t.name}<input value={name} onChange={e=>setName(e.target.value)}/></label>{blocked&&<p className="error">{t.reservedName}</p>}<label>{t.description}<textarea value={desc} onChange={e=>setDesc(e.target.value)}/></label><label>{t.settings}<select><option>{t.public}</option><option>{t.private}</option></select></label><button className="button button-primary" disabled={blocked} onClick={go}>{t.publish} · 0€</button><p className="muted">{t.earnedOnly}</p><p className="muted">Los juegos publicados se actualizan automáticamente al guardar su proyecto en el editor. No hace falta volver a publicarlos.</p></div>}</main>}
 
 function Missions(){const[,t]=useLang();const[balance,setBalance]=useState(()=>Number(localStorage.getItem("eskadin-fc")||0));const[progress,setProgress]=useState(()=>read("eskadin-mission-progress",{play:false,explore:false,like:false}));const ms=[["play","Play an experience",8],["explore","Open an experience page",12],["like","Like an experience",5]];useEffect(()=>{const sync=()=>{setProgress(read("eskadin-mission-progress",{play:false,explore:false,like:false}));setBalance(Number(localStorage.getItem("eskadin-fc")||0))};sync();const id=setInterval(sync,400);return()=>clearInterval(id)},[]);return <main className="page"><div className="eyebrow">{t.missions}</div><h1 className="page-title">F¢ missions</h1><div className="wallet-banner"><b>{balance} F¢</b><span>{t.earnCurrency}</span><Link to="/wallet">{t.wallet}</Link></div><div className="mission-grid">{ms.map(([id,title,n])=><div className="mission-card" key={id}><span>MISSION</span><h3>{title}</h3><strong>+{n} F¢</strong><Link className="button button-primary" to="/games">{progress[id]?"✓ Completed":"Go do it →"}</Link></div>)}</div></main>}
 
