@@ -249,7 +249,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   let last=performance.now(),raf=0;
   let currentCameraDistance=3.8,cameraZoomTarget=cameraZoomRef.current;
   const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
-  const wheel=e=>{if(cameraModeRef.current==="first")return;e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
+  const wheel=e=>{e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
   renderer.domElement.addEventListener("wheel",wheel,{passive:false});
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
