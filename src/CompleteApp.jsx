@@ -251,79 +251,52 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
   const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
   const wheel=e=>{e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
   renderer.domElement.addEventListener("wheel",wheel,{passive:false});
-  const pinchDistanceRef=useRef(0);
-  const touchGestureRef=useRef({active:false});
-  const distanceBetweenTouches=touches=>{
-    if(!touches||touches.length<2)return 0;
-    const a=touches[0],b=touches[1];
-    return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)
-  };
-  const touchStart=e=>{
+  const touchPointsRef=useRef(new Map()),pinchDistanceRef=useRef(0);
+  const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
+  const wheel=e=>{e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
+  renderer.domElement.addEventListener("wheel",wheel,{passive:false});
+  const lookDown=e=>{
+    if(e.pointerType==="mouse"){
+      if(e.button!==0)return;
+      e.preventDefault();
+      lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};
+      renderer.domElement.setPointerCapture?.(e.pointerId);
+      return
+    }
+    if(e.pointerType!=="touch")return;
     e.preventDefault();
-    const distance=distanceBetweenTouches(e.touches);
-    if(e.touches.length>=2){
-      touchGestureRef.current={active:true};
-      pinchDistanceRef.current=distance;
+    touchPointsRef.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(touchPointsRef.current.size>=2){
+      const pts=[...touchPointsRef.current.values()];
+      pinchDistanceRef.current=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
       lookRef.current.active=false;
       return
     }
-    if(e.touches.length===1){
-      touchGestureRef.current={active:false};
-      lookRef.current={active:true,id:"touch",lastX:e.touches[0].clientX,lastY:e.touches[0].clientY}
-    }
+    lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY}
   };
-  const touchMove=e=>{
-    e.preventDefault();
-    if(e.touches.length>=2){
-      const distance=distanceBetweenTouches(e.touches);
-      if(!touchGestureRef.current.active){
-        touchGestureRef.current.active=true;
+  const lookMove=e=>{
+    if(e.pointerType==="touch"){
+      if(touchPointsRef.current.has(e.pointerId))touchPointsRef.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(touchPointsRef.current.size>=2){
+        const pts=[...touchPointsRef.current.values()];
+        const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+        if(pinchDistanceRef.current>0){
+          cameraZoomTarget-=(distance-pinchDistanceRef.current)*.018;
+          clampZoom();
+          cameraZoomRef.current=cameraZoomTarget
+        }
         pinchDistanceRef.current=distance;
         lookRef.current.active=false;
         return
       }
-      if(pinchDistanceRef.current>0){
-        cameraZoomTarget-=(distance-pinchDistanceRef.current)*.018;
-        clampZoom();
-        cameraZoomRef.current=cameraZoomTarget
-      }
-      pinchDistanceRef.current=distance;
-      lookRef.current.active=false;
-      return
-    }
-    if(e.touches.length===1&&lookRef.current.active&&lookRef.current.id==="touch"){
-      const t=e.touches[0];
-      const dx=t.clientX-lookRef.current.lastX,dy=t.clientY-lookRef.current.lastY;
-      lookRef.current.lastX=t.clientX;lookRef.current.lastY=t.clientY;
+      if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
+      e.preventDefault();
+      const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
+      lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;
       yaw-=dx*.006;
-      pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.35,1.05)
-    }
-  };
-  const touchEnd=e=>{
-    e.preventDefault();
-    if(e.touches.length>=2){
-      pinchDistanceRef.current=distanceBetweenTouches(e.touches);
-      lookRef.current.active=false;
+      pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.35,1.05);
       return
     }
-    if(e.touches.length===1){
-      const t=e.touches[0];
-      touchGestureRef.current={active:false};
-      pinchDistanceRef.current=0;
-      lookRef.current={active:true,id:"touch",lastX:t.clientX,lastY:t.clientY};
-      return
-    }
-    touchGestureRef.current={active:false};
-    pinchDistanceRef.current=0;
-    lookRef.current.active=false
-  };
-  const lookDown=e=>{
-    if(e.pointerType!=="mouse"||e.button!==0)return;
-    e.preventDefault();
-    lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};
-    renderer.domElement.setPointerCapture?.(e.pointerId)
-  };
-  const lookMove=e=>{
     if(e.pointerType!=="mouse"||!lookRef.current.active||e.pointerId!==lookRef.current.id)return;
     e.preventDefault();
     const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;
@@ -332,12 +305,23 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
     pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.35,1.05)
   };
   const lookUp=e=>{
+    if(e.pointerType==="touch"){
+      touchPointsRef.current.delete(e.pointerId);
+      if(touchPointsRef.current.size>=2){
+        const pts=[...touchPointsRef.current.values()];
+        pinchDistanceRef.current=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+        lookRef.current.active=false;
+        return
+      }
+      pinchDistanceRef.current=0;
+      if(touchPointsRef.current.size===1){
+        const [id,p]=[...touchPointsRef.current.entries()][0];
+        lookRef.current={active:true,id,lastX:p.x,lastY:p.y}
+      }else lookRef.current.active=false;
+      return
+    }
     if(e.pointerType==="mouse"&&e.pointerId===lookRef.current.id)lookRef.current.active=false
   };
-  renderer.domElement.addEventListener("touchstart",touchStart,{passive:false});
-  renderer.domElement.addEventListener("touchmove",touchMove,{passive:false});
-  renderer.domElement.addEventListener("touchend",touchEnd,{passive:false});
-  renderer.domElement.addEventListener("touchcancel",touchEnd,{passive:false});
   renderer.domElement.addEventListener("pointerdown",lookDown);
   renderer.domElement.addEventListener("pointermove",lookMove);
   renderer.domElement.addEventListener("pointerup",lookUp);
