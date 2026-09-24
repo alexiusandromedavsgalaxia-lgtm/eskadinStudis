@@ -186,6 +186,7 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
  const[chatMessages,setChatMessages]=useState(()=>read(`eskadin-experience-chat-${game?.id||"unknown"}`,[]));
  const hostRef=useRef(null),runtimeRef=useRef(null),stickRef=useRef(null),knobRef=useRef(null);
  const keysRef=useRef({}),touchRef=useRef({x:0,z:0,active:false,id:null}),lookRef=useRef({active:false,id:null,lastX:0,lastY:0});
+ const cameraModeRef=useRef("third");
  const jumpRef=useRef(false),pausedRef=useRef(false);
  const cameraZoomRef=useRef(4.2);
  useEffect(()=>{
@@ -245,12 +246,16 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    syncPlayer();
   };
 
-  const yaw=Math.PI,pitch=-.12;
+  let yaw=Math.PI,pitch=-.12;
   let last=performance.now(),raf=0;
   let currentCameraDistance=3.8,cameraZoomTarget=cameraZoomRef.current;
   const clampZoom=()=>{cameraZoomTarget=THREE.MathUtils.clamp(cameraZoomTarget,.65,12)};
   const wheel=e=>{e.preventDefault();cameraZoomTarget+=e.deltaY>0?.55:-.55;clampZoom();cameraZoomRef.current=cameraZoomTarget};
   renderer.domElement.addEventListener("wheel",wheel,{passive:false});
+  const lookDown=e=>{if(e.pointerType==="mouse"&&e.button!==0)return;e.preventDefault();lookRef.current={active:true,id:e.pointerId,lastX:e.clientX,lastY:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)};
+  const lookMove=e=>{if(!lookRef.current.active||e.pointerId!==lookRef.current.id)return;e.preventDefault();const dx=e.clientX-lookRef.current.lastX,dy=e.clientY-lookRef.current.lastY;lookRef.current.lastX=e.clientX;lookRef.current.lastY=e.clientY;yaw-=dx*.006;pitch=THREE.MathUtils.clamp(pitch-dy*.004,-1.35,1.05)};
+  const lookUp=e=>{if(e.pointerId===lookRef.current.id)lookRef.current.active=false};
+  renderer.domElement.addEventListener("pointerdown",lookDown);renderer.domElement.addEventListener("pointermove",lookMove);renderer.domElement.addEventListener("pointerup",lookUp);renderer.domElement.addEventListener("pointercancel",lookUp);
   const keydown=e=>{if(["INPUT","TEXTAREA","SELECT"].includes(e.target?.tagName))return;keysRef.current[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault()};
   const keyup=e=>{keysRef.current[e.code]=false};window.addEventListener("keydown",keydown);window.addEventListener("keyup",keyup);
 
@@ -275,24 +280,38 @@ function GameRuntime({game,onExit,onRestart}){const[,t]=useLang();
    if(playerCollider.start.y<-25){playerCollider.start.set(0,radius,4);playerCollider.end.set(0,radius+capsuleHeight,4);velocity.set(0,0,0);playerCollisions();syncPlayer()}
    player.userData.animate?.(now/1000,move.lengthSq()>0.02,playerOnFloor);player.rotation.y=yaw;
    const cameraTargetY=playerCollider.start.y+1.18;
+   const mode=cameraModeRef.current;
+   player.visible=mode!=="first";
+   const modeDistance=mode==="first"?.05:mode==="second"?2.15:4.2;
    cameraZoomTarget=cameraZoomRef.current;
-   currentCameraDistance+=(cameraZoomTarget-currentCameraDistance)*Math.min(1,dt*12);
-   const cameraDistance=Math.max(1.5,currentCameraDistance);
-   const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance;
-   const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance;
-   camera.position.set(camX,cameraTargetY+.60,camZ);
-   camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
+   currentCameraDistance+=(cameraZoomTarget-modeDistance)*Math.min(1,dt*12);
+   const cameraDistance=mode==="first"?0:Math.max(1.5,currentCameraDistance);
+   if(mode==="first"){
+    camera.position.set(playerCollider.start.x,playerCollider.start.y+1.48,playerCollider.start.z);
+    camera.rotation.order="YXZ";
+    camera.rotation.set(pitch,yaw,0);
+   }else{
+    const cp=Math.cos(pitch),sp=Math.sin(pitch);
+    const camX=playerCollider.start.x-Math.sin(yaw)*cameraDistance*cp;
+    const camZ=playerCollider.start.z-Math.cos(yaw)*cameraDistance*cp;
+    const camY=cameraTargetY+.35+cameraDistance*sp;
+    camera.position.set(camX,camY,camZ);
+    camera.lookAt(playerCollider.start.x,cameraTargetY,playerCollider.start.z);
+   }
    renderer.render(scene3,camera);
   };
   raf=requestAnimationFrame(animate);
-  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("wheel",wheel);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
+  return()=>{cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener("keydown",keydown);window.removeEventListener("keyup",keyup);renderer.domElement.removeEventListener("wheel",wheel);renderer.domElement.removeEventListener("pointerdown",lookDown);renderer.domElement.removeEventListener("pointermove",lookMove);renderer.domElement.removeEventListener("pointerup",lookUp);renderer.domElement.removeEventListener("pointercancel",lookUp);stickRef.current?.removeEventListener("pointerdown",stickDown);stickRef.current?.removeEventListener("pointermove",stickMove);stickRef.current?.removeEventListener("pointerup",stickUp);stickRef.current?.removeEventListener("pointercancel",stickUp);jumpButton?.removeEventListener("pointerdown",onJump);renderer.dispose();scene3.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})};
  },[]);
  const[menuOpen,setMenuOpen]=useState(false);
  const toggleMenu=()=>{setMenuOpen(v=>{const next=!v;pausedRef.current=next;return next})};const continueGame=()=>{pausedRef.current=false;setMenuOpen(false)};
  return <div ref={runtimeRef} className="game-runtime"><div ref={hostRef} className="game-runtime-canvas"/>
- <div className="runtime-camera-switcher" role="toolbar" aria-label="Zoom de cámara">
+ <div className="runtime-camera-switcher" role="toolbar" aria-label="Cámara">
+  <button className="camera-mode-button" onClick={()=>{cameraModeRef.current="first";cameraZoomRef.current=.8}} aria-label="Primera persona">1ª</button>
+  <button className="camera-mode-button" onClick={()=>{cameraModeRef.current="second";cameraZoomRef.current=2.15}} aria-label="Segunda persona">2ª</button>
+  <button className="camera-mode-button" onClick={()=>{cameraModeRef.current="third";cameraZoomRef.current=4.2}} aria-label="Tercera persona">3ª</button>
   <button onClick={()=>{cameraZoomRef.current=Math.min(12,cameraZoomRef.current+.8)}} aria-label="Alejar cámara">−</button>
-  <button onClick={()=>{cameraZoomRef.current=Math.max(1.5,cameraZoomRef.current-.8)}} aria-label="Acercar cámara">+</button>
+  <button onClick={()=>{cameraZoomRef.current=Math.max(.65,cameraZoomRef.current-.8)}} aria-label="Acercar cámara">+</button>
  </div><div ref={stickRef} className="touch-stick" aria-label="Joystick"><div ref={knobRef} className="touch-stick-knob"/><span>MOVE</span></div><button type="button" className="touch-jump" data-jump>JUMP</button><div className="runtime-top-actions"><button type="button" className="runtime-chat-button" aria-label={t.chat} aria-expanded={chatOpen} onClick={()=>setChatOpen(v=>!v)}>💬</button><button type="button" className="runtime-menu-button" aria-label="Eskådin Stüdis menu" aria-expanded={menuOpen} onClick={toggleMenu}><span className="runtime-logo-mark">E</span></button></div>
  {chatOpen&&<div className="runtime-chat-panel"><div className="runtime-chat-head"><b>{t.chat}</b><button type="button" onClick={()=>setChatOpen(false)}>×</button></div><div className="runtime-chat-messages">{chatMessages.slice(-40).map(m=><div className="runtime-chat-message" key={m.id}><b>{m.name}</b><span>{m.text}</span></div>)}</div><form className="runtime-chat-compose" onSubmit={e=>{e.preventDefault();const v=chatText.trim();if(!v)return;const next=[...chatMessages,{id:Date.now(),name:user?.name||"Guest",text:v}].slice(-100);setChatMessages(next);save(`eskadin-experience-chat-${game?.id||"unknown"}`,next);setChatText("")}}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Escribe…"/><button type="submit">➤</button></form></div>}
  {menuOpen&&<div className="runtime-pause-menu" role="dialog" aria-label={t.menu}><button type="button" onClick={continueGame}>{t.continueGame}</button><button type="button" onClick={onRestart}>{t.restart}</button><button type="button" onClick={onExit}>{t.exit}</button></div>}
