@@ -44,4 +44,25 @@ export async function onRequestPost({request,env}){
     return json({error:"Unknown action"},400);
   }catch(e){return json({error:"Account operation failed",detail:String(e?.message||e)},500)}
 }
-export async function onRequestGet({env}){if(!env?.DB)return json({ok:false,error:"DB not configured"},503);try{await env.DB.prepare("SELECT 1").first();return json({ok:true,service:"auth",database:"connected"})}catch(e){return json({ok:false,error:"D1 query failed",detail:String(e?.message||e)},500)}}
+function sessionFromRequest(request){const raw=request.headers.get("cookie")||"";const m=raw.match(/(?:^|;\\s*)session=([^;]+)/);return m?decodeURIComponent(m[1]):""}
+export async function onRequestGet({request,env}){
+  if(!env?.DB)return json({ok:false,error:"DB not configured"},503);
+  try{
+    await ensureSchema(env.DB);
+    const t=sessionFromRequest(request);
+    let user=null;
+    if(t){
+      const row=await env.DB.prepare("SELECT a.id,a.name,a.email,s.expires_at FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token=? AND s.expires_at>datetime('now')").bind(t).first();
+      if(row)user={id:row.id,name:row.name,email:row.email||""};
+    }
+    return json({ok:true,service:"auth",database:"connected",authenticated:!!user,user});
+  }catch(e){return json({ok:false,error:"D1 query failed",detail:String(e?.message||e)},500)}
+}
+export async function onRequestDelete({request,env}){
+  if(!env?.DB)return json({ok:false,error:"DB not configured"},503);
+  try{
+    const t=sessionFromRequest(request);
+    if(t)await env.DB.prepare("DELETE FROM sessions WHERE token=?").bind(t).run();
+    return json({ok:true,authenticated:false,user:null},200,{"set-cookie":"session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0"});
+  }catch(e){return json({error:"Logout failed",detail:String(e?.message||e)},500)}
+}
